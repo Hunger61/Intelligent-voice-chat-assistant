@@ -1,13 +1,14 @@
-package host.hunger.vocalchat.domain.model.AIAssistant;
+package host.hunger.vocalchat.domain.model.aiassistant;
 
+import host.hunger.vocalchat.domain.model.shared.ValueObject;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
-public class AIAssistantName {
+public class AIAssistantName extends ValueObject {
     private final String name;
 
     public AIAssistantName(String name) {

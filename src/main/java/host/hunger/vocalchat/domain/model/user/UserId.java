@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.domain.model.User;
+package host.hunger.vocalchat.domain.model.user;
 
 public class UserId {
     private final String id;

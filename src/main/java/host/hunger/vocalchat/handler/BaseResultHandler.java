@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /** 全局结果处理 */
-@RestControllerAdvice(basePackages = "com.sast.approval.controller")
+@RestControllerAdvice(basePackages = "com.sast.approval.api")
 @Slf4j
 public class BaseResultHandler implements ResponseBodyAdvice<Object> {
 
