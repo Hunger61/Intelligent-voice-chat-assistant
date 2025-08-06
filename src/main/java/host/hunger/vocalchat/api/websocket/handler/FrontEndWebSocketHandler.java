@@ -6,16 +6,16 @@ import host.hunger.vocalchat.api.websocket.dto.Command;
 import host.hunger.vocalchat.api.websocket.dto.GenerateCommand;
 import host.hunger.vocalchat.api.websocket.dto.StartLLMCommand;
 import host.hunger.vocalchat.application.service.QuestionAnsweringApplicationService;
+import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 
-@Component
 @Slf4j
 @RequiredArgsConstructor
+// todo 应直接获得UserId与session关联，而非从assistant中获取UserId
 public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     private final WebSocketSessionManager webSocketSessionManager;
@@ -60,14 +60,14 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
         log.info("Received message: {}", message.getPayload());
         try {
             Command command = objectMapper.readValue(message.getPayload(), Command.class);
-            switch (command.getCommand()){
-                case "start_llm":
-                    handleStartLLMCommand(session, (StartLLMCommand)command);
-                    break;
-                case "generate":handleGenerateCommand(session,(GenerateCommand)command);
-                    break;
-                    //todo
+            if (command instanceof StartLLMCommand){
+                handleStartLLMCommand(session, (StartLLMCommand)command);
+            } else if(command instanceof GenerateCommand){
+                handleGenerateCommand(session,(GenerateCommand)command);
+            }else {
+                log.error("Unknown command: {}", command);
             }
+            //todo
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -81,12 +81,18 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
     private void handlePongMessage(PongMessage message){
 
     }
-    //todo
-    private void handleStartLLMCommand(WebSocketSession session, StartLLMCommand command) {
 
+    private void handleStartLLMCommand(WebSocketSession session, StartLLMCommand command) {
+        AIAssistant assistant = questionAnsweringApplicationService.findAIAssistantById(command.getAiAssistantId());
+        try {
+            session.getAttributes().put("ai_assistant",assistant);
+            webSocketSessionManager.registerSession(assistant.getUserId(),session);//todo 吐了🤮
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-    //todo
+
     private void handleGenerateCommand(WebSocketSession session, GenerateCommand command) {
-        questionAnsweringApplicationService.answerQuestion(command.getContent(), session.getId());//todo 实现从session中获取userId
+        questionAnsweringApplicationService.answerQuestion((AIAssistant) session.getAttributes().get("ai_assistant"),command.getContent());//todo 实现从session中获取userId：实现拦截器，且要改前端
     }
 }

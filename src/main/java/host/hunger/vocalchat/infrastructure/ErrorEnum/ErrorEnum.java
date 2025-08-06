@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.enums;
+package host.hunger.vocalchat.infrastructure.ErrorEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,5 +1,6 @@
 package host.hunger.vocalchat.domain.model.shared;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public abstract class Identity extends ValueObject{
@@ -16,10 +17,6 @@ public abstract class Identity extends ValueObject{
         return id.trim();
     }
 
-    public String getValue() {
-        return id;
-    }
-
     public static <T extends Identity> T generate(Class<T> identityClass) {
         try {
             String uuid = UUID.randomUUID().toString();
@@ -28,4 +25,23 @@ public abstract class Identity extends ValueObject{
             throw new RuntimeException("Failed to generate identity", e);
         }
     }
+
+    @Override
+    public String toString() {
+        return this.id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Identity identity = (Identity) o;
+        return Objects.equals(id, identity.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
 }

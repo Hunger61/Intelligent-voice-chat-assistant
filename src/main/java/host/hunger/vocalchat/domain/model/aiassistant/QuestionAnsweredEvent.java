@@ -10,19 +10,16 @@ import java.util.UUID;
 @Getter
 public class QuestionAnsweredEvent extends DomainEvent {
 
-    public QuestionAnsweredEvent(AIAssistantId aiAssistantId, String question, String answer, UserId userId, String sessionId) {
+    public QuestionAnsweredEvent(AIAssistantId aiAssistantId, String question, String answer, UserId userId) {
         super(UUID.randomUUID().toString(),LocalDateTime.now());
         this.aiAssistantId = aiAssistantId;
         this.question = question;
         this.answer = answer;
         this.userId = userId;
-        this.sessionId = sessionId;
     }
 
     private final AIAssistantId aiAssistantId;
     private final String question;
     private final String answer;
     private final UserId userId;
-    private final String sessionId;
-
 }

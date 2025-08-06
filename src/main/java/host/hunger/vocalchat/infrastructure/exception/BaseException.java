@@ -1,6 +1,6 @@
-package host.hunger.vocalchat.exception;
+package host.hunger.vocalchat.infrastructure.exception;
 
-import host.hunger.vocalchat.enums.ErrorEnum;
+import host.hunger.vocalchat.infrastructure.ErrorEnum.ErrorEnum;
 import lombok.Getter;
 
 @Getter

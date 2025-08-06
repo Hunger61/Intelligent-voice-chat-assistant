@@ -16,6 +16,4 @@ public abstract class AggregateRoot<T> extends Entity<T> {
     protected void publishDomainEvent(DomainEvent event) {
         domainEvents.add(event);
     }
-
-
 }

@@ -1,9 +1,9 @@
-package host.hunger.vocalchat.handler;
+package host.hunger.vocalchat.infrastructure.handler;
 
 
-import host.hunger.vocalchat.enums.ErrorEnum;
-import host.hunger.vocalchat.exception.BaseException;
-import host.hunger.vocalchat.result.BaseResult;
+import host.hunger.vocalchat.infrastructure.ErrorEnum.ErrorEnum;
+import host.hunger.vocalchat.infrastructure.exception.BaseException;
+import host.hunger.vocalchat.infrastructure.result.BaseResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

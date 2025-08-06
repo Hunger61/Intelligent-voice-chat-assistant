@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.annotation;
+package host.hunger.vocalchat.infrastructure.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

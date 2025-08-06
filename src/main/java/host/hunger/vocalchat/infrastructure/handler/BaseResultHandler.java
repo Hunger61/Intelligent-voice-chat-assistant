@@ -1,9 +1,9 @@
-package host.hunger.vocalchat.handler;
+package host.hunger.vocalchat.infrastructure.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import host.hunger.vocalchat.annotation.AutoResult;
-import host.hunger.vocalchat.result.BaseResult;
+import host.hunger.vocalchat.infrastructure.annotation.AutoResult;
+import host.hunger.vocalchat.infrastructure.result.BaseResult;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;

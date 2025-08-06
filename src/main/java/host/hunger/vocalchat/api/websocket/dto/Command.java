@@ -14,7 +14,6 @@ import lombok.Getter;
         @JsonSubTypes.Type(value = StartLLMCommand.class, name = "start_llm"),
         @JsonSubTypes.Type(value = GenerateCommand.class, name = "generate"),
 })
-@Getter
 public abstract class Command {
     @JsonProperty("command")
     protected String command;

@@ -1,6 +1,6 @@
-package host.hunger.vocalchat.result;
+package host.hunger.vocalchat.infrastructure.result;
 
-import host.hunger.vocalchat.enums.ErrorEnum;
+import host.hunger.vocalchat.infrastructure.ErrorEnum.ErrorEnum;
 import lombok.Data;
 
 import java.io.Serializable;
