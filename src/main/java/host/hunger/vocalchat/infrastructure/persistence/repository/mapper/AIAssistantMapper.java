@@ -1,9 +1,0 @@
-package host.hunger.vocalchat.infrastructure.persistence.repository.mapper;
-
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import host.hunger.vocalchat.infrastructure.persistence.repository.entity.AIAssistantDO;
-import org.apache.ibatis.annotations.Mapper;
-
-@Mapper
-public interface AIAssistantMapper extends BaseMapper<AIAssistantDO> {
-}

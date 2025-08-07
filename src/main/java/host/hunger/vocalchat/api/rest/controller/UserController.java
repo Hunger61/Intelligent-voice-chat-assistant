@@ -1,6 +1,6 @@
 package host.hunger.vocalchat.api.rest.controller;
 
-import host.hunger.vocalchat.infrastructure.annotation.AutoResult;
+import host.hunger.vocalchat.api.rest.annotation.AutoResult;
 import host.hunger.vocalchat.api.rest.dto.UserLoginDTO;
 import host.hunger.vocalchat.api.rest.dto.UserRegisterDTO;
 import host.hunger.vocalchat.application.service.UserRegistrationApplicationService;

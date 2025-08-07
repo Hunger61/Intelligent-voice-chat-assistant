@@ -2,11 +2,17 @@ package host.hunger.vocalchat.api.websocket.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import host.hunger.vocalchat.api.websocket.dto.Command;
-import host.hunger.vocalchat.api.websocket.dto.GenerateCommand;
-import host.hunger.vocalchat.api.websocket.dto.StartLLMCommand;
+import host.hunger.vocalchat.api.websocket.command.Command;
+import host.hunger.vocalchat.api.websocket.command.GenerateCommand;
+import host.hunger.vocalchat.api.websocket.command.StartLLMCommand;
+import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
 import host.hunger.vocalchat.application.service.QuestionAnsweringApplicationService;
+import host.hunger.vocalchat.domain.event.DomainEventPublisher;
+import host.hunger.vocalchat.domain.event.QuestionAnsweredEvent;
+import host.hunger.vocalchat.domain.event.QuestionReceivedEvent;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
+import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
+import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,16 +21,16 @@ import org.springframework.web.socket.*;
 
 @Slf4j
 @RequiredArgsConstructor
-// todo 应直接获得UserId与session关联，而非从assistant中获取UserId
 public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     private final WebSocketSessionManager webSocketSessionManager;
     private final ObjectMapper objectMapper;
+    private final DomainEventPublisher domainEventPublisher;
     private final QuestionAnsweringApplicationService questionAnsweringApplicationService;
 
     @Override
     public void afterConnectionEstablished(@NotNull WebSocketSession session) throws Exception {
-        webSocketSessionManager.registerSession(session.getId(), session);
+        webSocketSessionManager.registerSession((UserId) session.getAttributes().get("userId"), session);
         log.info("New connection established: {}", session.getId());
     }
 
@@ -83,16 +89,15 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
     }
 
     private void handleStartLLMCommand(WebSocketSession session, StartLLMCommand command) {
-        AIAssistant assistant = questionAnsweringApplicationService.findAIAssistantById(command.getAiAssistantId());
-        try {
-            session.getAttributes().put("ai_assistant",assistant);
-            webSocketSessionManager.registerSession(assistant.getUserId(),session);//todo 吐了🤮
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        String aiAssistantId = command.getAiAssistantId();
+        if (aiAssistantId == null || aiAssistantId.trim().isEmpty()) {
+            log.error("AI Assistant ID is null or empty in StartLLMCommand");
+            return;
         }
+        questionAnsweringApplicationService.setAIAssistant(new AIAssistantId(aiAssistantId));
     }
 
     private void handleGenerateCommand(WebSocketSession session, GenerateCommand command) {
-        questionAnsweringApplicationService.answerQuestion((AIAssistant) session.getAttributes().get("ai_assistant"),command.getContent());//todo 实现从session中获取userId：实现拦截器，且要改前端
+        domainEventPublisher.publish(new QuestionReceivedEvent(command.getContent(), (UserId) session.getAttributes().get("userId")));
     }
 }

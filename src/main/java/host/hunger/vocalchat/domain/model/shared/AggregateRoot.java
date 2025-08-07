@@ -1,5 +1,6 @@
 package host.hunger.vocalchat.domain.model.shared;
 
+import host.hunger.vocalchat.domain.event.DomainEvent;
 import lombok.Getter;
 
 import java.util.ArrayList;

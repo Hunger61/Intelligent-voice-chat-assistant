@@ -1,7 +1,7 @@
 package host.hunger.vocalchat.infrastructure.event;
 
-import host.hunger.vocalchat.domain.model.shared.DomainEvent;
-import host.hunger.vocalchat.domain.model.shared.DomainEventPublisher;
+import host.hunger.vocalchat.domain.event.DomainEvent;
+import host.hunger.vocalchat.domain.event.DomainEventPublisher;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;

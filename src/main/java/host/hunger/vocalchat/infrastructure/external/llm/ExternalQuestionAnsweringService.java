@@ -4,14 +4,16 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
-import host.hunger.vocalchat.domain.model.aiassistant.QuestionAnsweredEvent;
-import host.hunger.vocalchat.domain.model.shared.DomainEventPublisher;
+import host.hunger.vocalchat.domain.event.QuestionAnsweredEvent;
+import host.hunger.vocalchat.domain.event.DomainEventPublisher;
 import host.hunger.vocalchat.domain.service.QuestionAnsweringService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class ExternalQuestionAnsweringService implements QuestionAnsweringService {
 
     private final DomainEventPublisher domainEventPublisher;
@@ -23,13 +25,16 @@ public class ExternalQuestionAnsweringService implements QuestionAnsweringServic
 
     @Override
     public void answerQuestion(QuestionRequest request, AIAssistant aiAssistant) {
-        QuestionAnsweredEvent questionAnsweredEvent = new QuestionAnsweredEvent(
+        try {
+            QuestionAnsweredEvent questionAnsweredEvent = new QuestionAnsweredEvent(
                 aiAssistant.getId(),
                 request.getQuestion(),
                 chatLanguageModel.chat(request.getQuestion()),
                 aiAssistant.getUserId()
         );
-        domainEventPublisher.publish(questionAnsweredEvent);
-//        return new AnswerResponse(qwenLanguageModel.generate(request.getQuestion()).content()) ;
+            domainEventPublisher.publish(questionAnsweredEvent);
+        } catch (Exception e) {
+            log.error("Error: {}", e.getMessage());
+        }
     }
 }
