@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: vocalchat
+  datasource:
+    url: jdbc:mysql://localhost:3306/vocalchat?useSSL=false&serverTimezone=UTC
+    username: Hunger
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+jwt:
+  secret: jwt
+  expiration: 864000000
