@@ -26,12 +26,10 @@ public abstract class Identity extends ValueObject{
         }
     }
 
-    @Override
     public String toString() {
         return this.id;
     }
 
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -39,7 +37,6 @@ public abstract class Identity extends ValueObject{
         return Objects.equals(id, identity.id);
     }
 
-    @Override
     public int hashCode() {
         return Objects.hash(id);
     }

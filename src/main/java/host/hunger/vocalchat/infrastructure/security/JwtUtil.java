@@ -21,9 +21,9 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
-    public String createToken(String username) {
+    public String createToken(String email) {
         return JWT.create()
-                .withSubject(username)
+                .withSubject(email)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
                 .sign(Algorithm.HMAC512(secret));

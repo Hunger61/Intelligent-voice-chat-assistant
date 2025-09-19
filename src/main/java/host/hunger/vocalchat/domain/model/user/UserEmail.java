@@ -1,11 +1,21 @@
 package host.hunger.vocalchat.domain.model.user;
 
 import host.hunger.vocalchat.domain.model.shared.ValueObject;
+import lombok.Getter;
 
-//todo
+@Getter
 public class UserEmail extends ValueObject {
-    private String email;
+    private final String email;
     public UserEmail(String email){
-        this.email = email;
+        if (email == null || email.trim().isBlank()||!isValidEmail(email)){
+            throw new IllegalArgumentException("Invalid email");
+        }
+        this.email = email.trim().toLowerCase();
+    }
+
+    private boolean isValidEmail(String email){
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" +
+                "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        return email.matches(emailRegex);
     }
 }

@@ -1,22 +1,38 @@
 package host.hunger.vocalchat.infrastructure.filter;
 
-import host.hunger.vocalchat.infrastructure.repository.persistence.entity.UserDO;
+import host.hunger.vocalchat.domain.model.user.User;
+import host.hunger.vocalchat.domain.model.user.UserEmail;
+import host.hunger.vocalchat.domain.repository.UserRepository;
+import host.hunger.vocalchat.infrastructure.security.JwtUtil;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 @Component
 @WebFilter(filterName = "UserFilter", urlPatterns = "/*")
+@RequiredArgsConstructor
 public class UserFilter implements Filter {
 
-    public static final ScopedValue<UserDO> USER_DO = ScopedValue.newInstance();
+    public static final ScopedValue<User> USER = ScopedValue.newInstance();
+
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain){
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
 
-        ScopedValue.where(USER_DO, new UserDO())
+        String token = request.getHeader("token");
+        if(token == null || token.trim().isBlank()){
+            return;
+        }
+        String email = jwtUtil.resolveToken(token);
+        User user = userRepository.findByEmail(new UserEmail(email));
+        ScopedValue.where(USER, user)
                 .run(() -> {
                     try {
                         filterChain.doFilter(servletRequest, servletResponse);

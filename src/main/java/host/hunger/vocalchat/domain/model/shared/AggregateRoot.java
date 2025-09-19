@@ -8,6 +8,7 @@ import java.util.List;
 
 @Getter
 public abstract class AggregateRoot<T> extends Entity<T> {
+
     private List<DomainEvent> domainEvents = new ArrayList<>();
 
     public void clearDomainEvents() {
