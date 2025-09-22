@@ -3,7 +3,9 @@ package host.hunger.vocalchat.api.rest.controller;
 import host.hunger.vocalchat.api.rest.annotation.AutoResult;
 import host.hunger.vocalchat.api.rest.dto.UserLoginDTO;
 import host.hunger.vocalchat.api.rest.dto.UserRegisterDTO;
-import host.hunger.vocalchat.application.service.UserRegistrationApplicationService;
+import host.hunger.vocalchat.application.service.UserApplicationService;
+import host.hunger.vocalchat.domain.model.user.User;
+import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,17 +19,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserRegistrationApplicationService userRegistrationApplicationService;
+    private final UserApplicationService userApplicationService;
 
     @PostMapping("/register")
     @AutoResult
-    public void register(@RequestBody UserRegisterDTO userRegisterDTO) {
-        userRegistrationApplicationService.registerUser(userRegisterDTO.getUsername(), userRegisterDTO.getPassword(), userRegisterDTO.getEmail());
+    public String register(@RequestBody UserRegisterDTO userRegisterDTO) {
+        return userApplicationService.registerUser(userRegisterDTO.getNickName(), userRegisterDTO.getPassword(), userRegisterDTO.getEmail(), userRegisterDTO.getVerificationCode());
     }
 
     @PostMapping("/login")
     @AutoResult
-    public void login(@RequestBody UserLoginDTO userLoginDTO) {
+    public String login(@RequestBody UserLoginDTO userLoginDTO) {
+        return userApplicationService.login(userLoginDTO.getEmail(), userLoginDTO.getPassword());
+    }
 
+    @PostMapping("/getVerificationCode")
+    @AutoResult
+    public void getVerificationCode(@RequestBody String email) {
+        userApplicationService.sendVerificationCode(email);
+    }
+
+    @PostMapping("/logout")
+    @AutoResult
+    public void logout() {
+        User user = UserInterceptor.userHolder.get();
+        userApplicationService.logout(user);
     }
 }

@@ -14,6 +14,6 @@ public class UserFactory{
     {
         User user = create(name, email, password);
         user.setId(Identity.generate(UserId.class));
-        return new User(name, email, password);
+        return user;
     }
 }

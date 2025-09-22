@@ -1,7 +1,7 @@
 package host.hunger.vocalchat.api.rest.handler;
 
 
-import host.hunger.vocalchat.infrastructure.ErrorEnum.ErrorEnum;
+import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import host.hunger.vocalchat.infrastructure.exception.BaseException;
 import host.hunger.vocalchat.api.rest.result.BaseResult;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.security;
+package host.hunger.vocalchat.infrastructure.util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -21,9 +21,9 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
-    public String createToken(String email) {
+    public String createToken(String id) {
         return JWT.create()
-                .withSubject(email)
+                .withSubject(id)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
                 .sign(Algorithm.HMAC512(secret));
