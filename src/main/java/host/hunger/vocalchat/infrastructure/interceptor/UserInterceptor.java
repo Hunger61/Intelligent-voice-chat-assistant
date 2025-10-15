@@ -1,5 +1,6 @@
 package host.hunger.vocalchat.infrastructure.interceptor;
 
+import host.hunger.vocalchat.api.rest.annotation.SkipToken;
 import host.hunger.vocalchat.domain.model.user.User;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.UserRepository;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
@@ -24,6 +26,15 @@ public class UserInterceptor implements HandlerInterceptor {
     public boolean preHandle(
             HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler)
             throws Exception {
+
+        if (!(handler instanceof HandlerMethod)) {
+            return true;
+        }
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+        SkipToken skipToken = handlerMethod.getMethodAnnotation(SkipToken.class);
+        if (skipToken != null) {
+            return true;
+        }
 
         String token = request.getHeader("Token");
 

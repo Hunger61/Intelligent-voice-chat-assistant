@@ -1,0 +1,12 @@
+CREATE TABLE user
+(
+    id         VARCHAR(36) PRIMARY KEY COMMENT '用户ID（UUID）',
+    name       VARCHAR(100) NOT NULL COMMENT '姓名',
+    email      VARCHAR(100) UNIQUE COMMENT '邮箱',
+    password   VARCHAR(255) NOT NULL COMMENT '密码',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_email (email)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
