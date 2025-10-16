@@ -16,16 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class QuestionAnsweringApplicationService {
     private AIAssistant aiAssistant;
     private final QuestionAnsweringService questionAnsweringService;
     private final AIAssistantRepository aiAssistantRepository;
 
-    @EventListener
-    @Async
-    public void answerQuestion(QuestionReceivedEvent event) {
-        QuestionRequest request = new QuestionRequest(event.getQuestion(), false);
+    public void answerQuestion(String question) {
+        QuestionRequest request = new QuestionRequest(question, false);
         questionAnsweringService.answerQuestion(request,aiAssistant);
     }
 

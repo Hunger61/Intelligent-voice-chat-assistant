@@ -50,7 +50,7 @@ public class UserApplicationService {
         userDomainService.addDefaultAIAssistants(user.getId());
         userRepository.save(user);
         String token = jwtUtil.createToken(user.getId().toString());
-        redisUtil.set(user.getId().toString(), "", 86400);//todo
+        redisUtil.set(RedisKey.userKey(user.getId()), "", 86400);//todo
         return token;
     }
 
@@ -66,7 +66,7 @@ public class UserApplicationService {
         UserPassword userPassword = new UserPassword(password);
         User user = userDomainService.authenticate(userEmail, userPassword);
         String token = jwtUtil.createToken(user.getId().toString());
-        redisUtil.set(user.getId().toString(), "", 86400);//todo
+        redisUtil.set(RedisKey.userKey(user.getId()), "", 86400);//todo
         return token;
     }
 
@@ -87,7 +87,7 @@ public class UserApplicationService {
     }
 
     public void logout(User user) {
-        redisUtil.delete(jwtUtil.resolveToken(user.getId().toString()));//todo
+        redisUtil.delete(RedisKey.userKey(user.getId()));//todo
 
     }
 }

@@ -6,6 +6,8 @@ import host.hunger.vocalchat.api.websocket.interceptor.FrontEndWebSocketIntercep
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
 import host.hunger.vocalchat.application.service.QuestionAnsweringApplicationService;
 import host.hunger.vocalchat.domain.event.DomainEventPublisher;
+import host.hunger.vocalchat.domain.repository.UserRepository;
+import host.hunger.vocalchat.infrastructure.util.JwtUtil;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +32,9 @@ public class FrontEndWebSocketConfig implements WebSocketConfigurer {
     private final ObjectMapper objectMapper;
     private final DomainEventPublisher domainEventPublisher;
     private final QuestionAnsweringApplicationService questionAnsweringApplicationService;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
@@ -46,7 +51,7 @@ public class FrontEndWebSocketConfig implements WebSocketConfigurer {
 
     @Bean
     public HandshakeInterceptor chatWebSocketInterceptor() {
-        return new FrontEndWebSocketInterceptor();
+        return new FrontEndWebSocketInterceptor(jwtUtil,userRepository);
     }
 
 }

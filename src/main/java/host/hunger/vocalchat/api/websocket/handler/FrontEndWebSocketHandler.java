@@ -5,27 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import host.hunger.vocalchat.api.websocket.command.Command;
 import host.hunger.vocalchat.api.websocket.command.GenerateCommand;
 import host.hunger.vocalchat.api.websocket.command.StartLLMCommand;
-import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
 import host.hunger.vocalchat.application.service.QuestionAnsweringApplicationService;
-import host.hunger.vocalchat.domain.event.DomainEventPublisher;
-import host.hunger.vocalchat.domain.event.QuestionAnsweredEvent;
-import host.hunger.vocalchat.domain.event.QuestionReceivedEvent;
-import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.socket.*;
 
 @Slf4j
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     private final WebSocketSessionManager webSocketSessionManager;
     private final ObjectMapper objectMapper;
-    private final DomainEventPublisher domainEventPublisher;
     private final QuestionAnsweringApplicationService questionAnsweringApplicationService;
 
     @Override
@@ -98,6 +92,6 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
     }
 
     private void handleGenerateCommand(WebSocketSession session, GenerateCommand command) {
-        domainEventPublisher.publish(new QuestionReceivedEvent(command.getContent(), (UserId) session.getAttributes().get("userId")));
+        questionAnsweringApplicationService.answerQuestion(command.getContent());
     }
 }
