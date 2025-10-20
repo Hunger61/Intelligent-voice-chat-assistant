@@ -33,7 +33,7 @@ public class FrontEndWebSocketInterceptor implements HandshakeInterceptor {
             String id = jwtUtil.resolveToken(token);
             UserId userId = new UserId(id);
             // 根据 code 字段查询用户
-            User user = userRepository.findById(userId);
+            User user = userRepository.findById(userId);//todo 改用redis缓存
             if (user == null) {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;

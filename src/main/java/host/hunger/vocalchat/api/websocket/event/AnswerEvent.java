@@ -6,11 +6,11 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class AnswerReceivedEvent {
+public class AnswerEvent {
     @JsonProperty("event")
     private String eventName;
     @JsonProperty("chat_id")
     private String ChatId;
-    @JsonProperty("content")
+    @JsonProperty("payload")
     private String content;
 }

@@ -3,9 +3,10 @@ package host.hunger.vocalchat.api.websocket.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import host.hunger.vocalchat.api.websocket.command.Command;
+import host.hunger.vocalchat.api.websocket.command.ConfigureLLMCommand;
 import host.hunger.vocalchat.api.websocket.command.GenerateCommand;
-import host.hunger.vocalchat.api.websocket.command.StartLLMCommand;
-import host.hunger.vocalchat.application.service.QuestionAnsweringApplicationService;
+import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
+import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
@@ -20,11 +21,11 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     private final WebSocketSessionManager webSocketSessionManager;
     private final ObjectMapper objectMapper;
-    private final QuestionAnsweringApplicationService questionAnsweringApplicationService;
+    private final AIAssistantApplicationService aiAssistantApplicationService;
 
     @Override
     public void afterConnectionEstablished(@NotNull WebSocketSession session) throws Exception {
-        webSocketSessionManager.registerSession((UserId) session.getAttributes().get("userId"), session);
+        webSocketSessionManager.registerSession((UserId) session.getAttributes().get("userId"), session);//todo
         log.info("New connection established: {}", session.getId());
     }
 
@@ -60,8 +61,8 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
         log.info("Received message: {}", message.getPayload());
         try {
             Command command = objectMapper.readValue(message.getPayload(), Command.class);
-            if (command instanceof StartLLMCommand){
-                handleStartLLMCommand(session, (StartLLMCommand)command);
+            if (command instanceof ConfigureLLMCommand){
+                handleConfigureLLMCommand(session, (ConfigureLLMCommand)command);
             } else if(command instanceof GenerateCommand){
                 handleGenerateCommand(session,(GenerateCommand)command);
             }else {
@@ -82,16 +83,22 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     }
 
-    private void handleStartLLMCommand(WebSocketSession session, StartLLMCommand command) {
+    private void handleConfigureLLMCommand(WebSocketSession session, ConfigureLLMCommand command) {
         String aiAssistantId = command.getAiAssistantId();
         if (aiAssistantId == null || aiAssistantId.trim().isEmpty()) {
             log.error("AI Assistant ID is null or empty in StartLLMCommand");
             return;
         }
-        questionAnsweringApplicationService.setAIAssistant(new AIAssistantId(aiAssistantId));
+        AIAssistant aiAssistant = aiAssistantApplicationService.findAIAssistantById(new AIAssistantId(aiAssistantId));
+        session.getAttributes().put("aiAssistant", aiAssistant);
     }
 
     private void handleGenerateCommand(WebSocketSession session, GenerateCommand command) {
-        questionAnsweringApplicationService.answerQuestion(command.getContent());
+        AIAssistant aiAssistant = (AIAssistant)session.getAttributes().get("aiAssistant");
+        if (aiAssistant == null) {
+            log.error("AI Assistant is null in GenerateCommand");
+            return;
+        }
+        aiAssistantApplicationService.answerQuestion(aiAssistant,command.getContent());
     }
 }

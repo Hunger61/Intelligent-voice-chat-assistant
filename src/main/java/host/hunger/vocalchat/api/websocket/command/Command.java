@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "command"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = StartLLMCommand.class, name = "start_llm"),
+        @JsonSubTypes.Type(value = ConfigureLLMCommand.class, name = "start_llm"),
         @JsonSubTypes.Type(value = GenerateCommand.class, name = "generate"),
 })
 public abstract class Command {

@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class StartLLMCommand extends Command{
+public class ConfigureLLMCommand extends Command{
     @JsonProperty("ai_assistant_id")
     private String aiAssistantId;
 }

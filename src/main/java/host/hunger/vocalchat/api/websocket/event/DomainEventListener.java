@@ -15,7 +15,7 @@ import org.springframework.context.event.EventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DomainEventListener {
+public class DomainEventListener {//todo
 
     private final WebSocketMessageSender webSocketMessageSender;
 
@@ -23,12 +23,12 @@ public class DomainEventListener {
     @Async
     public void handleEvent(DomainEvent event) {
         if (event instanceof QuestionAnsweredEvent questionAnsweredEvent) {
-            AnswerReceivedEvent answerReceivedEvent = new AnswerReceivedEvent(
+            AnswerEvent answerEvent = new AnswerEvent(
                     "chat_response",
                     "1",//todo
                     questionAnsweredEvent.getAnswer()
             );
-            webSocketMessageSender.sendMessage(questionAnsweredEvent.getUserId(), answerReceivedEvent);
+            webSocketMessageSender.sendMessage(questionAnsweredEvent.getUserId(), answerEvent);
         }else if (event instanceof QuestionReceivedEvent questionReceivedEvent) {
             ASREvent asrEvent = new ASREvent(
                     "repeat",
