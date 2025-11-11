@@ -34,7 +34,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public void save(User user) {
-
+        userMapper.insert(toDataObject(user));
     }
 
     @Override
@@ -58,7 +58,7 @@ public class UserRepositoryImpl implements UserRepository {
         return user;
     }
 
-    private UserDO toPersistence(User user) {
+    private UserDO toDataObject(User user) {
         UserDO userDO = new UserDO();
         userDO.setId(user.getId().toString());
         userDO.setName(user.getNickName().getNickName());

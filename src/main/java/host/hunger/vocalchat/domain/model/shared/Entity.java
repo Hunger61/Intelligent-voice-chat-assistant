@@ -1,15 +1,15 @@
 package host.hunger.vocalchat.domain.model.shared;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
 @EqualsAndHashCode
-public abstract class Entity<T> {
-    @TableId(value = "id", type = IdType.ASSIGN_UUID)
-    protected T id;
+@NoArgsConstructor
+public abstract class Entity<ID extends Identity> {
+    protected ID id;
+    protected Entity(ID id) {
+        this.id = id;
+    }
 }

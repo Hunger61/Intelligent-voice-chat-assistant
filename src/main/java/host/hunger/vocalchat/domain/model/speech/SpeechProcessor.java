@@ -9,10 +9,14 @@ import lombok.Setter;
 //todo
 @Getter
 @Setter
-@RequiredArgsConstructor
 public class SpeechProcessor extends AggregateRoot<SessionId> {
 
     private final UserId userId;
     private Session session;
+
+    protected SpeechProcessor(SessionId sessionId, UserId userId) {
+        super(sessionId);
+        this.userId = userId;
+    }
     //todo
 }

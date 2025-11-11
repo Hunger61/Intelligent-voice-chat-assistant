@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class ExternalQuestionAnsweringService implements QuestionAnsweringService {
+public class OllamaQuestionAnsweringService implements QuestionAnsweringService {
 
     private final DomainEventPublisher domainEventPublisher;
 

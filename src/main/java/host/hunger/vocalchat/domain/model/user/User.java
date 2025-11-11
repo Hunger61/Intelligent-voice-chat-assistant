@@ -19,6 +19,13 @@ public class User extends AggregateRoot<UserId> {
         this.password = password;
     }
 
+    public User(UserId id, NickName nickName, UserEmail email, UserPassword password){
+        super(id);
+        this.nickName = nickName;
+        this.email = email;
+        this.password = password;
+    }
+
     public void changeNickName(NickName nickName){
         this.nickName = nickName;
     }//todo
@@ -34,4 +41,5 @@ public class User extends AggregateRoot<UserId> {
     public boolean verifyPassword(UserPassword password){
         return this.password.matches(password);
     }//todo
+
 }

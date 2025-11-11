@@ -12,8 +12,6 @@ public class UserFactory{
     }
     public static User createWithGeneratedId(NickName name, UserEmail email, UserPassword password)
     {
-        User user = create(name, email, password);
-        user.setId(Identity.generate(UserId.class));
-        return user;
+        return new User(Identity.generate(UserId.class),name, email, password);
     }
 }

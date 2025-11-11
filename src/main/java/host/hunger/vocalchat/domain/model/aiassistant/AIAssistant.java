@@ -36,7 +36,7 @@ public class AIAssistant extends AggregateRoot<AIAssistantId> {
 
     public AIAssistant(AIAssistantId aiAssistantId, UserId userId, AIAssistantName name,
                        AIAssistantDescription description, AIAssistantCharacter character) {
-        super.setId(aiAssistantId);
+        super(aiAssistantId);
         this.userId = userId;
         this.name = name;
         this.description = description;
