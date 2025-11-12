@@ -7,6 +7,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SpeechProcessorFactory {
     public static SpeechProcessor create(UserId userId) {
-        return new SpeechProcessor(userId);
+        return new SpeechProcessor();
     }
 }

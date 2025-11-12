@@ -34,7 +34,7 @@ public class UserDomainServiceImpl implements UserDomainService {
 
     @Override
     public void addDefaultAIAssistants(UserId userId) {
-        AIAssistant aiAssistant = AIAssistantFactory.create(DefaultAIAssistants.XIAO_ZHI);
+        AIAssistant aiAssistant = AIAssistantFactory.createDeaultAIAssistant(DefaultAIAssistants.XIAO_ZHI);
         aiAssistant.setUserId(userId);
         aiAssistantRepository.save(aiAssistant);
     }

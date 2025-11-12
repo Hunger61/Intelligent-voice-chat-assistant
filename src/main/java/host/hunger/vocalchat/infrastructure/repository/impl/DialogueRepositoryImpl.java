@@ -73,6 +73,9 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     }
 
     private Dialogue toDomain(DialogueDO d) {
+        if (d == null){
+            return null;
+        }
         AIAssistantId aiId = new AIAssistantId(d.getAiAssistantId());
         DialogueId dialogueId = new DialogueId(d.getId());
         ArrayList<DialogueContext> contexts = new ArrayList<>();
@@ -97,6 +100,9 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     }
 
     private DialogueDO toDataObject(Dialogue dialogue) {
+        if (dialogue == null){
+            return null;
+        }
         DialogueDO d = new DialogueDO();
         d.setId(dialogue.getId() == null ? null : dialogue.getId().toString());
         d.setAiAssistantId(dialogue.getAiAssistantId().toString());

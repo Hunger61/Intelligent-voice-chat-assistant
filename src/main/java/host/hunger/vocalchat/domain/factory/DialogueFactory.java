@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 @Component
 public class DialogueFactory {
-    public static Dialogue create(AIAssistantId aiAssistantId) {
+    public static Dialogue createNewDialogue(AIAssistantId aiAssistantId) {
         return new Dialogue(Identity.generate(DialogueId.class),aiAssistantId);
     }
 

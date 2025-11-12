@@ -45,6 +45,9 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
     }
 
     private AIAssistant toDomain(AIAssistantDO assistantDO) {
+        if (assistantDO== null){
+            return null;
+        }
         return new AIAssistant(
                 new AIAssistantId(assistantDO.getId()),
                 new UserId(assistantDO.getUserId()),
@@ -55,6 +58,9 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
     }
 
     private AIAssistantDO toDataObject(AIAssistant assistant) {
+        if (assistant == null){
+            return null;
+        }
         AIAssistantDO assistantDO = new AIAssistantDO();
         assistantDO.setId(assistant.getId().toString());
         assistantDO.setUserId(assistant.getUserId().toString());
