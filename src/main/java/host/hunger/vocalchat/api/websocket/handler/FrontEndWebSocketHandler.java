@@ -99,6 +99,6 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
             log.error("AI Assistant is null in GenerateCommand");
             return;
         }
-        aiAssistantApplicationService.answerQuestion(aiAssistant,command.getContent());
+//        aiAssistantApplicationService.answerQuestion(aiAssistant,command.getContent());//todo
     }
 }

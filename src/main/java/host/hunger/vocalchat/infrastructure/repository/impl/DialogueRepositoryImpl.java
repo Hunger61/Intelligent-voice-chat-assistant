@@ -46,6 +46,12 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     }
 
     @Override
+    public Dialogue findByAIAssistantId(AIAssistantId aiAssistantId) {
+        DialogueDO dialogueDO = dialogueMapper.selectOne(new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getAiAssistantId, aiAssistantId.toString()));
+        return toDomain(dialogueDO);
+    }
+
+    @Override
     public void delete(DialogueId dialogueId) {
         dialogueMapper.deleteById(dialogueId.toString());
     }
@@ -108,4 +114,6 @@ public class DialogueRepositoryImpl implements DialogueRepository {
         }
         return d;
     }
+
+
 }

@@ -53,9 +53,7 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     private User toDomain(UserDO userDO) {
-        User user = UserFactory.create(new NickName(userDO.getName()), new UserEmail(userDO.getEmail()), new UserPassword(userDO.getPassword()));
-        user.setId(new UserId(userDO.getId()));
-        return user;
+        return UserFactory.reconstitute(new UserId(userDO.getId()),new NickName(userDO.getName()), new UserEmail(userDO.getEmail()), new UserPassword(userDO.getPassword()));
     }
 
     private UserDO toDataObject(User user) {

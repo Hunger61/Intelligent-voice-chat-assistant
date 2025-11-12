@@ -14,4 +14,8 @@ public class UserFactory{
     {
         return new User(Identity.generate(UserId.class),name, email, password);
     }
+    public static User reconstitute(UserId id, NickName name, UserEmail email, UserPassword password)
+    {
+        return new User(id,name, email, password);
+    }
 }

@@ -20,7 +20,6 @@ public class LLMController {
 
     @PostMapping("/generateReply")
     public String generateReply(@RequestBody QuestionDTO questionDTO){
-        aiAssistantApplicationService.answerQuestion(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
-        return "Reply generated";// todo
+        return aiAssistantApplicationService.answerQuestion(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
     }
 }

@@ -4,9 +4,16 @@ import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.service.QuestionAnsweringService;
 
+import java.util.concurrent.CompletableFuture;
+
 public class TencentQuestionAnsweringService implements QuestionAnsweringService {
     @Override
-    public void answerQuestion(QuestionRequest request, AIAssistant aiAssistant) {
+    public  String answerQuestion(QuestionRequest request, AIAssistant aiAssistant) {
+        return null;
+    }
 
+    @Override
+    public CompletableFuture<String> answerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant) {
+        return null;
     }
 }

@@ -1,11 +1,14 @@
 package host.hunger.vocalchat.domain.dto.request;
 
+import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+import java.util.List;
+
+@Getter
 @AllArgsConstructor
 public class QuestionRequest {
-    private String question;
-    private boolean enableSearch;
+    private List<DialogueContext> messages;
+    private boolean enableOnlineSearch;
 }
