@@ -13,7 +13,8 @@ public enum ErrorEnum {
     EMAIL_NOT_FOUND("邮箱未找到", 1003),
     PASSWORD_INCORRECT("密码不正确", 1004),
     AI_ASSISTANT_ID_NULL("AI 助手 ID 为空", 2001),
-    AI_ASSISTANT_NOT_FOUND("AI 助手不存在", 2002);
+    AI_ASSISTANT_NOT_FOUND("AI 助手不存在", 2002),
+    DIALOGUE_NOT_FOUND("对话不存在", 3001);
 
     private final String message;
     private final Integer code;

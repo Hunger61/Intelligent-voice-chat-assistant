@@ -42,9 +42,9 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     }
 
     @Override
-    public Dialogue findByAIAssistantId(AIAssistantId aiAssistantId) {
+    public Optional<Dialogue> findByAIAssistantId(AIAssistantId aiAssistantId) {
         DialogueDO dialogueDO = dialogueMapper.selectOne(new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getAiAssistantId, aiAssistantId.toString()));
-        return toDomain(dialogueDO);
+        return Optional.ofNullable(toDomain(dialogueDO));
     }
 
     @Override

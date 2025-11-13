@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.concurrent.CompletableFuture;
+
 @Service
 @RequiredArgsConstructor
 public class AIAssistantApplicationService {
@@ -40,13 +42,34 @@ public class AIAssistantApplicationService {
     public String answerQuestion(String question, String aiAssistantId) {
         AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
         AIAssistant aiAssistant = getAIAssistantById(assistantId);
-        Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId);
+        Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId)
+                .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
         byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
         QuestionRequest request = new QuestionRequest(byAIAssistantId.getDialogueContexts(), false);
         String answer = questionAnsweringService.answerQuestion(request, aiAssistant);
         byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(answer)));
         dialogueRepository.save(byAIAssistantId);
         return answer;
+    }
+
+    @Transactional
+    public CompletableFuture<String> answerQuestionAsync(String question, String aiAssistantId) {
+        AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
+        AIAssistant aiAssistant = getAIAssistantById(assistantId);
+        Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId)
+                .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
+        byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
+        QuestionRequest request = new QuestionRequest(byAIAssistantId.getDialogueContexts(), false);
+        CompletableFuture<String> future = questionAnsweringService.answerQuestionAsync(request, aiAssistant);
+        // when complete, persist the assistant reply
+        future.thenAccept(answer -> {
+            byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(answer)));
+            dialogueRepository.save(byAIAssistantId);
+        }).exceptionally(ex -> {
+            // log and swallow to let caller handle
+            return null;
+        });
+        return future;
     }
 
     @Transactional

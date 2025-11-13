@@ -6,7 +6,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
@@ -16,41 +16,68 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class OllamaQuestionAnsweringService implements QuestionAnsweringService {
 
-    private final ChatLanguageModel chatLanguageModel = OllamaChatModel.builder()
-            .baseUrl("http://localhost:11434")
-            .modelName("deepseek-r1:14b")
-            .build();
+    private final ChatLanguageModel chatLanguageModel;
+    private final StreamingChatLanguageModel streamingChatLanguageModel;
 
-
-    private final ExecutorService virtualExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService virtualExecutor;
 
     @Override
     public String answerQuestion(QuestionRequest request, AIAssistant aiAssistant) {
+        Instant start = Instant.now();
+        log.info("Start answerQuestion for assistant={}, messagesCount={}", aiAssistant.getId(), request.getMessages() == null ? 0 : request.getMessages().size());
+
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .id(aiAssistant.getId().toString())
                 .maxMessages(20)
-                .build();
-        chatMemory.add(createSystemMessage(aiAssistant.getDescription().getDescription()));
-        for (DialogueContext dialogueContext : request.getMessages()) {
-            if (dialogueContext.getRole().equals(DialogueRoles.USER)){
-                chatMemory.add(new UserMessage(dialogueContext.getContent().getContent()));
-            } else if (dialogueContext.getRole().equals(DialogueRoles.ASSISTANT)) {
-                chatMemory.add(new AiMessage(dialogueContext.getContent().getContent()));
-            }else {
-                throw new IllegalArgumentException("Invalid role");
+                .build();// todo 是否是单例，且是否需要依照文档中的持久化方式？
+        // add system
+        String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
+        chatMemory.add(createSystemMessage(system));
+        log.debug("Added system message: {}", system);
+
+        if (request.getMessages() != null) {
+            for (DialogueContext dialogueContext : request.getMessages()) {
+                log.debug("Adding message role={} content={}", dialogueContext.getRole(), dialogueContext.getContent());
+                if (dialogueContext.getRole().getRole().equals(DialogueRoles.USER)){
+                    chatMemory.add(new UserMessage(dialogueContext.getContent().getContent()));
+                } else if (dialogueContext.getRole().getRole().equals(DialogueRoles.ASSISTANT)) {
+                    chatMemory.add(new AiMessage(dialogueContext.getContent().getContent()));
+                } else {
+                    log.warn("Invalid role in dialogueContext: {}", dialogueContext.getRole());
+                }
             }
         }
-        AiMessage aiMessage = chatLanguageModel.chat(chatMemory.messages()).aiMessage();
-        return aiMessage.text();
+
+        Instant beforeCall = Instant.now();
+        AiMessage aiMessage;
+        try {
+            aiMessage = chatLanguageModel.chat(chatMemory.messages()).aiMessage();
+        } catch (Exception e) {
+            log.error("LLM call failed", e);
+            throw e;
+        }
+        Instant afterCall = Instant.now();
+
+        if (aiMessage == null) {
+            log.error("LLM returned null AiMessage for assistant={}", aiAssistant.getId());
+            throw new RuntimeException("LLM returned null response");
+        }
+
+        String text = aiMessage.text();
+        log.info("LLM answered in {} ms, total elapsed {} ms", Duration.between(beforeCall, afterCall).toMillis(), Duration.between(start, Instant.now()).toMillis());
+        log.debug("LLM response text: {}", text);
+        return text;
     }
 
     @Override
@@ -64,6 +91,35 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
             }
         }, virtualExecutor);
     }
+
+    public CompletableFuture<String> streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant) {
+//        return CompletableFuture.supplyAsync(() -> {
+//            streamingChatLanguageModel.chat(request.getMessages(), new StreamingChatResponseHandler() {
+//                @Override
+//                public void onPartialResponse(String s) {
+//
+//                }
+//
+//                @Override
+//                public void onCompleteResponse(ChatResponse chatResponse) {
+//                    log.info("LLM answered: {}", chatResponse.aiMessage().text());
+//                }
+//
+//                @Override
+//                public void onError(Throwable throwable) {
+//
+//                }
+//            });
+//        }, virtualExecutor);
+        return null;//todo
+    }
+
+
+    private List<String> dialogueContextsToList(List<DialogueContext> dialogueContexts) {
+        return dialogueContexts.stream()
+                .map(dialogueContext -> dialogueContext.getRole().getRole() + ": " + dialogueContext.getContent().getContent())
+                .toList();
+    }//todo
 
     private SystemMessage createSystemMessage(String text) {
         return SystemMessage.from(

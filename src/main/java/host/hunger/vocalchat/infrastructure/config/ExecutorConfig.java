@@ -7,11 +7,15 @@ import org.springframework.core.task.TaskDecorator;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.lang.NonNull;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration
 @EnableAsync
 @Slf4j
-public class AsyncConfig {
+public class ExecutorConfig {
 
     @Bean
     public TaskExecutor taskExecutor() {
@@ -25,9 +29,15 @@ public class AsyncConfig {
         return executor;
     }
 
+    @Bean(destroyMethod = "shutdown")
+    public ExecutorService virtualThreadExecutor() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
     static class LogTaskDecorator implements TaskDecorator {
         @Override
-        public Runnable decorate(Runnable runnable) {
+        @NonNull
+        public Runnable decorate(@NonNull Runnable runnable) {
             return () -> {
                 try {
                     runnable.run();
