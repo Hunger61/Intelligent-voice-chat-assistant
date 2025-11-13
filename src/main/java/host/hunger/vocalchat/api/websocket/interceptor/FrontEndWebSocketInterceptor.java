@@ -4,9 +4,8 @@ import host.hunger.vocalchat.domain.model.user.User;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.UserRepository;
 import host.hunger.vocalchat.infrastructure.util.JwtUtil;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -15,6 +14,7 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
+import java.util.Optional;
 
 @AllArgsConstructor
 public class FrontEndWebSocketInterceptor implements HandshakeInterceptor {
@@ -23,7 +23,7 @@ public class FrontEndWebSocketInterceptor implements HandshakeInterceptor {
     private final UserRepository userRepository;
 
     @Override
-    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+    public boolean beforeHandshake(@NotNull ServerHttpRequest request, @NotNull ServerHttpResponse response, @NotNull WebSocketHandler wsHandler, @NotNull Map<String, Object> attributes) throws Exception {
             ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
             String token = servletRequest.getServletRequest().getParameter("token");
             if (token == null || token.isBlank()) {
@@ -33,17 +33,17 @@ public class FrontEndWebSocketInterceptor implements HandshakeInterceptor {
             String id = jwtUtil.resolveToken(token);
             UserId userId = new UserId(id);
             // 根据 code 字段查询用户
-            User user = userRepository.findById(userId);//todo 改用redis缓存
-            if (user == null) {
+            Optional<User> userOptional = userRepository.findById(userId);//todo 改用redis缓存
+            if (userOptional.isEmpty()) {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;
             }
-            attributes.put(userId.toString(), user);
+            attributes.put(userId.toString(), userOptional.get());
             return true;
-    }
+    }//todo
 
     @Override
-    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
+    public void afterHandshake(@NotNull ServerHttpRequest request, @NotNull ServerHttpResponse response, @NotNull WebSocketHandler wsHandler, Exception exception) {
 
     }
 }

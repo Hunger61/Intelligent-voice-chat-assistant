@@ -9,6 +9,7 @@ import host.hunger.vocalchat.infrastructure.repository.persistence.mapper.AIAssi
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -16,8 +17,8 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
 
     private final AIAssistantMapper aiAssistantMapper;
     @Override
-    public AIAssistant findById(AIAssistantId aiAssistantId) {
-        return toDomain(aiAssistantMapper.selectById(aiAssistantId.toString()));
+    public Optional<AIAssistant> findById(AIAssistantId aiAssistantId) {
+        return Optional.ofNullable(toDomain(aiAssistantMapper.selectById(aiAssistantId.toString())));
     }
 
     @Override

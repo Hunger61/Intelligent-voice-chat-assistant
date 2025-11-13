@@ -10,6 +10,8 @@ import host.hunger.vocalchat.domain.repository.AIAssistantRepository;
 import host.hunger.vocalchat.domain.repository.UserRepository;
 import host.hunger.vocalchat.domain.service.UserDomainService;
 import host.hunger.vocalchat.infrastructure.Enum.DefaultAIAssistants;
+import host.hunger.vocalchat.infrastructure.exception.BaseException;
+import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +24,10 @@ public class UserDomainServiceImpl implements UserDomainService {
 
     @Override
     public User authenticate(UserEmail email, UserPassword password) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new RuntimeException("Email not found.");
-        }
-        if (user.verifyPassword(password)) {
-            throw new RuntimeException("Password is incorrect.");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ErrorEnum.EMAIL_NOT_FOUND));
+        if (!user.verifyPassword(password)) {
+            throw new BaseException(ErrorEnum.PASSWORD_INCORRECT);
         }
         return user;
     }

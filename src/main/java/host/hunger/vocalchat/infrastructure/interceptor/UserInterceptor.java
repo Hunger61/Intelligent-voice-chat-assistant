@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class UserInterceptor implements HandlerInterceptor {
@@ -24,13 +26,12 @@ public class UserInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(
-            HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler)
+            @NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Object handler)
             throws Exception {
 
-        if (!(handler instanceof HandlerMethod)) {
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
             return true;
         }
-        HandlerMethod handlerMethod = (HandlerMethod) handler;
         SkipToken skipToken = handlerMethod.getMethodAnnotation(SkipToken.class);
         if (skipToken != null) {
             return true;
@@ -47,16 +48,16 @@ public class UserInterceptor implements HandlerInterceptor {
         String id = jwtUtil.resolveToken(token);
         UserId userId = new UserId(id);
         // 根据 code 字段查询用户
-        User user = userRepository.findById(userId);
-        if (user == null) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Unauthorized: User not found");
             return false;
+        }else {
+            User user = userOptional.get();
+            userHolder.set(user);
+            return true;
         }
-
-        // 保存用户到 ThreadLocal
-        userHolder.set(user);
-        return true;
     }
 
     @Override

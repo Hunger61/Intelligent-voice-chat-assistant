@@ -16,10 +16,7 @@ import host.hunger.vocalchat.infrastructure.repository.persistence.mapper.Dialog
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -29,10 +26,9 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public Dialogue findById(DialogueId dialogueId) {
+    public Optional<Dialogue> findById(DialogueId dialogueId) {
         DialogueDO dialogueDO = dialogueMapper.selectById(dialogueId.toString());
-        if (dialogueDO == null) return null;
-        return toDomain(dialogueDO);
+        return Optional.ofNullable(toDomain(dialogueDO));
     }
 
     @Override

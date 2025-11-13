@@ -14,6 +14,8 @@ import host.hunger.vocalchat.domain.repository.DialogueRepository;
 import host.hunger.vocalchat.domain.service.QuestionAnsweringService;
 import host.hunger.vocalchat.infrastructure.Enum.DialogueRoles;
 import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
+import host.hunger.vocalchat.infrastructure.exception.BaseException;
+import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,22 +28,18 @@ public class AIAssistantApplicationService {
     private final QuestionAnsweringService questionAnsweringService;
     private final DialogueRepository dialogueRepository;
 
-    public AIAssistant findAIAssistantById(AIAssistantId aiAssistantId) {
+    public AIAssistant getAIAssistantById(AIAssistantId aiAssistantId) {
         if (aiAssistantId == null) {
-            throw new IllegalArgumentException("AI Assistant ID cannot be null");
+            throw new BaseException(ErrorEnum.AI_ASSISTANT_ID_NULL);
         }
-        AIAssistant aiAssistant = aiAssistantRepository.findById(aiAssistantId);
-        if (aiAssistant == null) {
-            throw new IllegalArgumentException("AI Assistant does not exist");
-        }
-        return aiAssistant;
+        return aiAssistantRepository.findById(aiAssistantId).orElseThrow(() -> new BaseException(ErrorEnum.AI_ASSISTANT_NOT_FOUND));
     }
 
     //todo 可能的异步操作
     @Transactional
     public String answerQuestion(String question, String aiAssistantId) {
         AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
-        AIAssistant aiAssistant = findAIAssistantById(assistantId);
+        AIAssistant aiAssistant = getAIAssistantById(assistantId);
         Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId);
         byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
         QuestionRequest request = new QuestionRequest(byAIAssistantId.getDialogueContexts(), false);

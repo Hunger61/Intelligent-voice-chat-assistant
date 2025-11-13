@@ -11,6 +11,8 @@ import host.hunger.vocalchat.infrastructure.external.email.EmailService;
 import host.hunger.vocalchat.infrastructure.util.JwtUtil;
 import host.hunger.vocalchat.infrastructure.util.RedisKey;
 import host.hunger.vocalchat.infrastructure.util.RedisUtil;
+import host.hunger.vocalchat.infrastructure.exception.BaseException;
+import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,12 +41,13 @@ public class UserApplicationService {
         UserEmail userEmail = new UserEmail(email);
         UserPassword userPassword = new UserPassword(password);
         NickName nickName = new NickName(nickname);
-        if (redisUtil.get(RedisKey.verificationCodeKey(userEmail)) != verificationCode) {
-            throw new RuntimeException("Verification code is incorrect.");
-        }
+        String storedCode = (String) redisUtil.get(RedisKey.verificationCodeKey(userEmail));
+        if (storedCode == null || !storedCode.equals(verificationCode)) {
+            throw new BaseException(ErrorEnum.VERIFICATION_CODE_INCORRECT);
+        }//todo 将storedCode直接判断是否存在
         redisUtil.delete(RedisKey.verificationCodeKey(userEmail));
-        if (userRepository.findByEmail(userEmail) != null) {
-            throw new RuntimeException("Email has been used.");
+        if (userRepository.existsByEmail(userEmail)) {
+            throw new BaseException(ErrorEnum.EMAIL_ALREADY_USED);
         }
         User user = UserFactory.createWithGeneratedId(nickName, userEmail, userPassword);
         userDomainService.addDefaultAIAssistants(user.getId());

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -18,8 +19,8 @@ public class UserRepositoryImpl implements UserRepository {
 
     private final UserMapper userMapper;
     @Override
-    public User findById(UserId userId) {
-        return null;
+    public Optional<User> findById(UserId userId) {
+        return Optional.empty();
     }
 
     @Override
@@ -44,19 +45,27 @@ public class UserRepositoryImpl implements UserRepository {
 
 
     @Override
-    public User findByEmail(UserEmail userEmail) {
+    public Optional<User> findByEmail(UserEmail userEmail) {
         UserDO userDO = userMapper.selectOne(new LambdaQueryWrapper<UserDO>().eq(UserDO::getEmail, userEmail.getEmail()));
-        if (userDO == null){
-            return null;
-        }
-        return toDomain(userDO);
+        return Optional.ofNullable(toDomain(userDO));
+    }
+
+    @Override
+    public boolean existsByEmail(UserEmail email) {
+        return userMapper.exists(new LambdaQueryWrapper<UserDO>().eq(UserDO::getEmail, email.getEmail()));
     }
 
     private User toDomain(UserDO userDO) {
+        if (userDO== null){
+            return null;
+        }
         return UserFactory.reconstitute(new UserId(userDO.getId()),new NickName(userDO.getName()), new UserEmail(userDO.getEmail()), new UserPassword(userDO.getPassword()));
     }
 
     private UserDO toDataObject(User user) {
+        if (user == null){
+            return null;
+        }
         UserDO userDO = new UserDO();
         userDO.setId(user.getId().toString());
         userDO.setName(user.getNickName().getNickName());

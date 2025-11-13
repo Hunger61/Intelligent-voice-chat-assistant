@@ -31,23 +31,23 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
 
     @Override
     public void handleMessage(@NotNull WebSocketSession session, @NotNull WebSocketMessage<?> message) throws Exception {
-        if (message instanceof TextMessage){
-            handleTextMessage(session, (TextMessage) message);
-        } else if (message instanceof PingMessage) {
-            handlePingMessage((PingMessage) message);
-        } else if (message instanceof PongMessage) {
-            handlePongMessage((PongMessage) message);
+        switch (message) {
+            case TextMessage textMessage -> handleTextMessage(session, textMessage);
+            case PingMessage pingMessage -> handlePingMessage(pingMessage);
+            case PongMessage pongMessage -> handlePongMessage(pongMessage);
+            default -> {
+            }
         }
     }
 
     //todo
     @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+    public void handleTransportError(@NotNull WebSocketSession session, @NotNull Throwable exception) throws Exception {
 
     }
     //todo
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
+    public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus closeStatus) throws Exception {
 
     }
     //todo
@@ -89,7 +89,7 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
             log.error("AI Assistant ID is null or empty in StartLLMCommand");
             return;
         }
-        AIAssistant aiAssistant = aiAssistantApplicationService.findAIAssistantById(new AIAssistantId(aiAssistantId));
+        AIAssistant aiAssistant = aiAssistantApplicationService.getAIAssistantById(new AIAssistantId(aiAssistantId));
         session.getAttributes().put("aiAssistant", aiAssistant);
     }
 
