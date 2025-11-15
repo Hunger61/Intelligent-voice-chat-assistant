@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -22,53 +20,75 @@ import java.util.concurrent.TimeUnit;
 public class AIAssistantController {
 
     private final AIAssistantApplicationService aiAssistantApplicationService;
-    private final ExecutorService virtualExecutor;
 
 
     @PostMapping("/createNewAssistant")
-    public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO){
+    public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
         aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter());
     }
 
 
     @PostMapping("/generateReply")
     @SkipToken
-    public String generateReply(@RequestBody QuestionDTO questionDTO){
+    public String generateReply(@RequestBody QuestionDTO questionDTO) {
         return aiAssistantApplicationService.answerQuestion(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
     }
 
     @PostMapping(value = "/streamGenerateReply", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamGenerateReply(@RequestBody QuestionDTO questionDTO) {
-        SseEmitter emitter = new SseEmitter(TimeUnit.MINUTES.toMillis(10));
-        CompletableFuture<String> future = aiAssistantApplicationService.answerQuestionAsync(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
+        SseEmitter emitter = createEmitter();
 
-        // send periodic heartbeat
-        CompletableFuture.runAsync(() -> {
-            try {
-                int i = 0;
-                while (!future.isDone()) {
-                    emitter.send(SseEmitter.event().name("progress").data("thinking..." + (i++)));
+        aiAssistantApplicationService.streamingAnswerQuestionAsync(
+                questionDTO.getQuestion(),
+                questionDTO.getAiAssistantId(),
+                token -> sendSafe(emitter, SseEmitter.event().name("token").data(token)),
+                () -> {
+                    sendSafe(emitter, SseEmitter.event().name("done").data("complete"));
+                    emitter.complete();
+                },
+                ex -> {
+                    sendSafe(emitter, SseEmitter.event().name("error").data(ex.getMessage()));
+                    emitter.completeWithError(ex);
                 }
-            } catch (Exception e) {
-                log.warn("Heartbeat sender stopped", e);
-            }
-        },virtualExecutor);
-
-        future.whenComplete((answer, ex) -> {
-            try {
-                if (ex != null) {
-                    log.error("LLM async failed", ex);
-                    emitter.send(SseEmitter.event().name("error").data("LLM error: " + ex.getMessage()));
-                } else {
-                    emitter.send(SseEmitter.event().name("final").data(answer));
-                }
-            } catch (IOException e) {
-                log.error("Failed to send SSE", e);
-            } finally {
-                emitter.complete();
-            }
-        });
-
+        );
         return emitter;
+    }
+
+    @GetMapping(value = "/streamGenerateReply", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamGenerateReplyGet(@RequestParam("question") String question,
+                                             @RequestParam("aiAssistantId") String aiAssistantId) {
+        SseEmitter emitter = createEmitter();
+        aiAssistantApplicationService.streamingAnswerQuestionAsync(
+                question,
+                aiAssistantId,
+                token -> sendSafe(emitter, SseEmitter.event().name("token").data(token)),
+                () -> {
+                    sendSafe(emitter, SseEmitter.event().name("done").data("complete"));
+                    emitter.complete();
+                },
+                ex -> {
+                    sendSafe(emitter, SseEmitter.event().name("error").data(ex.getMessage()));
+                    emitter.completeWithError(ex);
+                }
+        );
+        return emitter;
+    }
+
+    private SseEmitter createEmitter() {
+        SseEmitter emitter = new SseEmitter(TimeUnit.MINUTES.toMillis(10));
+        emitter.onTimeout(() -> {
+            sendSafe(emitter, SseEmitter.event().name("error").data("timeout"));
+            emitter.complete();
+        });
+        emitter.onError(e -> log.error("SSE error", e));
+        return emitter;
+    }
+
+    private void sendSafe(SseEmitter emitter, SseEmitter.SseEventBuilder event) {
+        try {
+            emitter.send(event);
+        } catch (IOException e) {
+            log.error("Failed to send SSE", e);
+        }
     }
 }

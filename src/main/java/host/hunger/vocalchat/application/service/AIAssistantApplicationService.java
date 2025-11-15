@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class AIAssistantApplicationService {
     public String answerQuestion(String question, String aiAssistantId) {
         AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
         AIAssistant aiAssistant = getAIAssistantById(assistantId);
-        Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId)
+        Dialogue byAIAssistantId = dialogueRepository.findByAIAssistantId(assistantId)//todo 对于dialogue考虑从redis等缓存中读取，减少数据库压力
                 .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
         byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
         QuestionRequest request = new QuestionRequest(byAIAssistantId.getDialogueContexts(), false);
@@ -70,6 +71,30 @@ public class AIAssistantApplicationService {
             return null;
         });
         return future;
+    }
+
+    public void streamingAnswerQuestionAsync(String question, String aiAssistantId, Consumer<String> onToken,
+                                             Runnable onComplete, Consumer<Throwable> onError) {
+        AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
+        AIAssistant aiAssistant = getAIAssistantById(assistantId);
+        Dialogue dialogue = dialogueRepository.findByAIAssistantId(assistantId)
+                .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
+        dialogue.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
+        QuestionRequest request = new QuestionRequest(dialogue.getDialogueContexts(), false);
+
+        questionAnsweringService.streamingAnswerQuestionAsync(
+                request,
+                aiAssistant,
+                onToken,
+                full -> {
+                    dialogue.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(full)));
+                    dialogueRepository.save(dialogue);
+                    if (onComplete != null) onComplete.run();
+                },
+                ex -> {
+                    if (onError != null) onError.accept(ex);
+                }
+        );
     }
 
     @Transactional

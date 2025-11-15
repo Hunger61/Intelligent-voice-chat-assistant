@@ -1,5 +1,6 @@
 package host.hunger.vocalchat.infrastructure.external.llm;
 
+import dev.langchain4j.chain.ConversationalChain;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -7,6 +8,8 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.TokenStream;
 import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
@@ -21,6 +24,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 @Service
@@ -29,6 +33,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
 
     private final ChatLanguageModel chatLanguageModel;
     private final StreamingChatLanguageModel streamingChatLanguageModel;
+//    private final ChatMemory chatMemory;
 
     private final ExecutorService virtualExecutor;
 
@@ -37,47 +42,21 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
         Instant start = Instant.now();
         log.info("Start answerQuestion for assistant={}, messagesCount={}", aiAssistant.getId(), request.getMessages() == null ? 0 : request.getMessages().size());
 
-        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .id(aiAssistant.getId().toString())
-                .maxMessages(20)
-                .build();// todo 是否是单例，且是否需要依照文档中的持久化方式？
-        // add system
-        String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
-        chatMemory.add(createSystemMessage(system));
-        log.debug("Added system message: {}", system);
-
-        if (request.getMessages() != null) {
-            for (DialogueContext dialogueContext : request.getMessages()) {
-                log.debug("Adding message role={} content={}", dialogueContext.getRole(), dialogueContext.getContent());
-                if (dialogueContext.getRole().getRole().equals(DialogueRoles.USER)){
-                    chatMemory.add(new UserMessage(dialogueContext.getContent().getContent()));
-                } else if (dialogueContext.getRole().getRole().equals(DialogueRoles.ASSISTANT)) {
-                    chatMemory.add(new AiMessage(dialogueContext.getContent().getContent()));
-                } else {
-                    log.warn("Invalid role in dialogueContext: {}", dialogueContext.getRole());
-                }
-            }
-        }
+        ConversationalChain chain = initializeAIModelWithMemory(request.getMessages(), aiAssistant, chatLanguageModel);
 
         Instant beforeCall = Instant.now();
-        AiMessage aiMessage;
-        try {
-            aiMessage = chatLanguageModel.chat(chatMemory.messages()).aiMessage();
-        } catch (Exception e) {
-            log.error("LLM call failed", e);
-            throw e;
-        }
+        String aiMessage = chain.execute("");//todo 考虑怎么优化
+
         Instant afterCall = Instant.now();
 
-        if (aiMessage == null) {
+        if (aiMessage.isBlank()) {
             log.error("LLM returned null AiMessage for assistant={}", aiAssistant.getId());
             throw new RuntimeException("LLM returned null response");
         }
 
-        String text = aiMessage.text();
         log.info("LLM answered in {} ms, total elapsed {} ms", Duration.between(beforeCall, afterCall).toMillis(), Duration.between(start, Instant.now()).toMillis());
-        log.debug("LLM response text: {}", text);
-        return text;
+        log.debug("LLM response text: {}", aiMessage);
+        return aiMessage;
     }
 
     @Override
@@ -92,39 +71,81 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
         }, virtualExecutor);
     }
 
-    public CompletableFuture<String> streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant) {
-//        return CompletableFuture.supplyAsync(() -> {
-//            streamingChatLanguageModel.chat(request.getMessages(), new StreamingChatResponseHandler() {
-//                @Override
-//                public void onPartialResponse(String s) {
-//
-//                }
-//
-//                @Override
-//                public void onCompleteResponse(ChatResponse chatResponse) {
-//                    log.info("LLM answered: {}", chatResponse.aiMessage().text());
-//                }
-//
-//                @Override
-//                public void onError(Throwable throwable) {
-//
-//                }
-//            });
-//        }, virtualExecutor);
-        return null;//todo
+    private interface AIAssistantStream {
+        TokenStream chat(String userMessage);
     }
 
+    @Override
+    public void streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant,
+                                             Consumer<String> onToken,
+                                             Consumer<String> onComplete,
+                                             Consumer<Throwable> onError) {
+        ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(100);
+        String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
+        chatMemory.add(createSystemMessage(system));
+        log.debug("Added system message: {}", system);
 
-    private List<String> dialogueContextsToList(List<DialogueContext> dialogueContexts) {
-        return dialogueContexts.stream()
-                .map(dialogueContext -> dialogueContext.getRole().getRole() + ": " + dialogueContext.getContent().getContent())
-                .toList();
-    }//todo
+        if (request.getMessages() != null) {
+            for (DialogueContext dialogueContext : request.getMessages()) {
+                log.debug("Adding message role={} content={}", dialogueContext.getRole(), dialogueContext.getContent());
+                if (dialogueContext.getRole().getRole().equals(DialogueRoles.USER)) {
+                    chatMemory.add(new UserMessage(dialogueContext.getContent().getContent()));
+                } else if (dialogueContext.getRole().getRole().equals(DialogueRoles.ASSISTANT)) {
+                    chatMemory.add(new AiMessage(dialogueContext.getContent().getContent()));
+                } else {
+                    log.warn("Invalid role in dialogueContext: {}", dialogueContext.getRole());
+                }
+            }
+        }
+
+        var ai = AiServices.builder(AIAssistantStream.class)
+                .chatMemory(chatMemory)
+                .streamingChatLanguageModel(streamingChatLanguageModel)
+                .build();
+
+        TokenStream tokenStream = ai.chat("");
+        tokenStream.onPartialResponse(s -> {
+            try {
+                onToken.accept(s);
+            } catch (Throwable t) {
+                log.warn("onToken consumer threw", t);
+            }
+        }).onError(e -> {
+            log.error("LLM stream error", e);
+            if (onError != null) onError.accept(e);
+        }).onCompleteResponse(response -> onComplete.accept(response.aiMessage().text()));
+    }
+
 
     private SystemMessage createSystemMessage(String text) {
         return SystemMessage.from(
                 "你" +
-                text);
+                        text);
     }
     //todo
+
+    private ConversationalChain initializeAIModelWithMemory(List<DialogueContext> dialogueContexts, AIAssistant aiAssistant, ChatLanguageModel chatLanguageModel) {
+        ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(100);
+        // add system
+        String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
+        chatMemory.add(createSystemMessage(system));
+        log.debug("Added system message: {}", system);
+
+        if (dialogueContexts != null) {
+            for (DialogueContext dialogueContext : dialogueContexts) {
+                log.debug("Adding message role={} content={}", dialogueContext.getRole(), dialogueContext.getContent());
+                if (dialogueContext.getRole().getRole().equals(DialogueRoles.USER)) {
+                    chatMemory.add(new UserMessage(dialogueContext.getContent().getContent()));
+                } else if (dialogueContext.getRole().getRole().equals(DialogueRoles.ASSISTANT)) {
+                    chatMemory.add(new AiMessage(dialogueContext.getContent().getContent()));
+                } else {
+                    log.warn("Invalid role in dialogueContext: {}", dialogueContext.getRole());
+                }
+            }
+        }
+        return ConversationalChain.builder()
+                .chatMemory(chatMemory)
+                .chatLanguageModel(chatLanguageModel)
+                .build();
+    }
 }
