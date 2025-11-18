@@ -45,7 +45,12 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
         ConversationalChain chain = initializeAIModelWithMemory(request.getMessages(), aiAssistant, chatLanguageModel);
 
         Instant beforeCall = Instant.now();
-        String aiMessage = chain.execute("");//todo 考虑怎么优化
+        String userInput = extractLatestUserMessage(request);
+        if (userInput == null || userInput.isBlank()) {
+            log.error("User input is empty when calling LLM");
+            throw new IllegalArgumentException("User input cannot be empty");
+        }
+        String aiMessage = chain.execute(userInput);// pass actual user message
 
         Instant afterCall = Instant.now();
 
@@ -80,6 +85,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
                                              Consumer<String> onToken,
                                              Consumer<String> onComplete,
                                              Consumer<Throwable> onError) {
+        log.info("streamingAnswerQuestionAsync start for assistant={}, msgCount={}", aiAssistant.getId(), request.getMessages() == null ? 0 : request.getMessages().size());
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(100);
         String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
         chatMemory.add(createSystemMessage(system));
@@ -103,17 +109,57 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
                 .streamingChatLanguageModel(streamingChatLanguageModel)
                 .build();
 
-        TokenStream tokenStream = ai.chat("");
-        tokenStream.onPartialResponse(s -> {
-            try {
-                onToken.accept(s);
-            } catch (Throwable t) {
-                log.warn("onToken consumer threw", t);
+        String userInput = extractLatestUserMessage(request);
+        if (userInput == null || userInput.isBlank()) {
+            IllegalArgumentException ex = new IllegalArgumentException("User input cannot be empty for streaming call");
+            log.error("Streaming call aborted: {}", ex.getMessage());
+            if (onError != null) onError.accept(ex);
+            return;
+        }
+
+        try {
+            log.info("Calling ai.chat for assistant={}, userInputLen={}", aiAssistant.getId(), userInput.length());
+            TokenStream tokenStream = ai.chat(userInput);
+            if (tokenStream == null) {
+                log.error("Ai.chat returned null TokenStream");
+                if (onError != null) onError.accept(new RuntimeException("TokenStream is null"));
+                return;
             }
-        }).onError(e -> {
-            log.error("LLM stream error", e);
+            log.info("TokenStream created: {}", tokenStream.getClass().getName());
+
+            tokenStream.onPartialResponse(s -> {
+                try {
+                    log.debug("onPartialResponse invoked, tokenLen={}", s == null ? 0 : s.length());
+                    if (onToken != null) onToken.accept(s == null ? "" : s);
+                } catch (Throwable t) {
+                    log.warn("onPartialResponse handler threw", t);
+                }
+            }).onError(e -> {
+                try {
+                    log.error("LLM stream error observed", e);
+                    if (onError != null) onError.accept(e);
+                } catch (Throwable t) {
+                    log.error("onError handler threw", t);
+                }
+            }).onCompleteResponse(response -> {
+                try {
+                    String full = "";
+                    if (response != null && response.aiMessage() != null && response.aiMessage().text() != null) {
+                        full = response.aiMessage().text();
+                    }
+                    log.info("onCompleteResponse invoked, fullLen={}", full.length());
+                    if (onComplete != null) onComplete.accept(full);
+                } catch (Throwable t) {
+                    log.error("onCompleteResponse handler threw", t);
+                    if (onError != null) onError.accept(t);
+                }
+            });
+
+            log.info("ai.chat invoked successfully and handlers registered");
+        } catch (Exception e) {
+            log.error("Failed to start token stream", e);
             if (onError != null) onError.accept(e);
-        }).onCompleteResponse(response -> onComplete.accept(response.aiMessage().text()));
+        }
     }
 
 
@@ -147,5 +193,19 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
                 .chatMemory(chatMemory)
                 .chatLanguageModel(chatLanguageModel)
                 .build();
+    }
+
+    private String extractLatestUserMessage(QuestionRequest request) {
+        if (request == null || request.getMessages() == null || request.getMessages().isEmpty()) return null;
+        List<DialogueContext> msgs = request.getMessages();
+        for (int i = msgs.size() - 1; i >= 0; i--) {
+            DialogueContext ctx = msgs.get(i);
+            if (ctx.getRole() != null && DialogueRoles.USER.equals(ctx.getRole().getRole())) {
+                if (ctx.getContent() != null && ctx.getContent().getContent() != null) {
+                    return ctx.getContent().getContent();
+                }
+            }
+        }
+        return null;
     }
 }

@@ -17,6 +17,7 @@ import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
 import host.hunger.vocalchat.infrastructure.exception.BaseException;
 import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AIAssistantApplicationService {
 
     private final AIAssistantRepository aiAssistantRepository;
@@ -64,10 +66,14 @@ public class AIAssistantApplicationService {
         CompletableFuture<String> future = questionAnsweringService.answerQuestionAsync(request, aiAssistant);
         // when complete, persist the assistant reply
         future.thenAccept(answer -> {
-            byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(answer)));
-            dialogueRepository.save(byAIAssistantId);
+            try {
+                byAIAssistantId.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(answer)));
+                dialogueRepository.save(byAIAssistantId);
+            } catch (Exception e) {
+                log.error("Failed to persist async answer", e);
+            }
         }).exceptionally(ex -> {
-            // log and swallow to let caller handle
+            log.error("answerQuestionAsync failed", ex);
             return null;
         });
         return future;
@@ -75,26 +81,59 @@ public class AIAssistantApplicationService {
 
     public void streamingAnswerQuestionAsync(String question, String aiAssistantId, Consumer<String> onToken,
                                              Runnable onComplete, Consumer<Throwable> onError) {
+        log.info("streamingAnswerQuestionAsync invoked: aiAssistantId={}, questionLen={}", aiAssistantId, question == null ? 0 : question.length());
         AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
         AIAssistant aiAssistant = getAIAssistantById(assistantId);
         Dialogue dialogue = dialogueRepository.findByAIAssistantId(assistantId)
                 .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
+
+        // add user context locally and persist immediately so the downstream LLM service can read saved context if it fetches from DB
         dialogue.addContext(new DialogueContext(new DialogueRole(DialogueRoles.USER), new DialogueContent(question)));
+        try {
+            dialogueRepository.save(dialogue);
+        } catch (Exception e) {
+            log.warn("Failed to save user context before streaming; continuing", e);
+        }
+
         QuestionRequest request = new QuestionRequest(dialogue.getDialogueContexts(), false);
 
-        questionAnsweringService.streamingAnswerQuestionAsync(
-                request,
-                aiAssistant,
-                onToken,
-                full -> {
-                    dialogue.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(full)));
-                    dialogueRepository.save(dialogue);
-                    if (onComplete != null) onComplete.run();
-                },
-                ex -> {
-                    if (onError != null) onError.accept(ex);
-                }
-        );
+        try {
+            questionAnsweringService.streamingAnswerQuestionAsync(
+                    request,
+                    aiAssistant,
+                    token -> {
+                        try {
+                            log.debug("stream token received length={}", token == null ? 0 : token.length());
+                            if (onToken != null) onToken.accept(token);
+                        } catch (Exception e) {
+                            log.error("error in onToken handler", e);
+                        }
+                    },
+                    full -> {
+                        try {
+                            // reload dialogue to avoid detached/merge issues in async thread
+                            Dialogue fresh = dialogueRepository.findByAIAssistantId(assistantId).orElse(null);
+                            if (fresh == null) {
+                                log.warn("Dialogue disappeared when persisting full answer, creating new dialogue record");
+                                fresh = DialogueFactory.createNewDialogue(assistantId);
+                            }
+                            fresh.addContext(new DialogueContext(new DialogueRole(DialogueRoles.ASSISTANT), new DialogueContent(full)));
+                            dialogueRepository.save(fresh);
+                            if (onComplete != null) onComplete.run();
+                        } catch (Exception e) {
+                            log.error("error while persisting full streaming answer", e);
+                            if (onError != null) onError.accept(e);
+                        }
+                    },
+                    ex -> {
+                        log.error("streamingAnswerQuestionAsync encountered error", ex);
+                        if (onError != null) onError.accept(ex);
+                    }
+            );
+        } catch (Exception e) {
+            log.error("Failed to start streamingAnswerQuestionAsync", e);
+            if (onError != null) onError.accept(e);
+        }
     }
 
     @Transactional

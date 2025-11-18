@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OllamaLlmConfig {
-    private static final String MODEL_NAME = "deepseek-r1:14b";//todo 放在配置文件中
+    private static final String MODEL_NAME = "qwen3:4b";//todo 放在配置文件中
     private static final String BASE_URL = "http://localhost:11434";
     private static final Integer MAX_MESSAGES = 20;
 
