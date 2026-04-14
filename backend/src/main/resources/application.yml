@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: vocalchat
+  datasource:
+    url: jdbc:mysql://localhost:3306/vocalchat?useSSL=false&serverTimezone=UTC
+    username: Hunger
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 3287426755@qq.com
+    password: vothdaqxyvfhdbeg
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+  threads:
+    virtual:
+      enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  minio:
+    endpoint: http://127.0.0.1:9005   # MinIO API端口
+    access-key: minioadmin
+    secret-key: minioadmin
+
+# Ollama configuration (values can be provided via environment variables OLLAMA_BASE_URL and OLLAMA_MODEL_NAME)
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model-name: ${OLLAMA_MODEL_NAME:qwen3:4b}
+
+jwt:
+  secret: jwt
+  expiration: 86400
+
+logging:
+  level:
+    root: INFO
+    host.hunger.vocalchat.infrastructure.external.llm.OllamaQuestionAnsweringService: DEBUG
+    host.hunger.vocalchat.application.service.AIAssistantApplicationService: DEBUG
+    host.hunger.vocalchat.api.rest.controller.AIAssistantController: DEBUG
+    dev.langchain4j: DEBUG
+    okhttp3: DEBUG
+    org.springframework.web: INFO
+

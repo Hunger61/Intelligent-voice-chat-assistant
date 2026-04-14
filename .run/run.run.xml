@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="run" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="$ErrorActionPreference='Stop'; Set-Location &quot;F:\projects\vocalchat&quot;; if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Error &quot;Docker CLI not found. Please install Docker Desktop.&quot;; exit 1 }; if (Test-Path Env:\DOCKER_INSECURE_NO_IPTABLES_RAW) { Remove-Item Env:\DOCKER_INSECURE_NO_IPTABLES_RAW }; $env:DOCKER_BUILDKIT='0'; $env:COMPOSE_DOCKER_CLI_BUILD='0'; cmd /c &quot;docker info &gt;nul 2&gt;nul&quot;; if ($LASTEXITCODE -ne 0) { Write-Error &quot;Docker Desktop engine is not running. Start Docker Desktop and retry.&quot;; exit 1 }; if (-not (Test-Path &quot;.env&quot;)) { Copy-Item &quot;.env.example&quot; &quot;.env&quot; -Force }; cmd /c &quot;docker compose build --pull=false&quot;; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmd /c &quot;docker compose up -d&quot;; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmd /c &quot;docker compose ps&quot;; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmd /c &quot;docker compose logs -f app&quot;" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="powershell.exe" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="false" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,93 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        BUILDER_IMAGE: ${BUILDER_IMAGE}
+        RUNTIME_IMAGE: ${RUNTIME_IMAGE}
+    image: vocalchat:local
+    ports:
+      - "${APP_PORT}:8080"
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      # If Ollama runs on host or another container, configure OLLAMA_BASE_URL accordingly
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_MODEL_NAME=${OLLAMA_MODEL_NAME}
+      - VC_MINIO_BUCKET=${VC_MINIO_BUCKET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${VC_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${VC_MINIO_ROOT_PASSWORD}
+    ports:
+      - "${VC_MINIO_API_PORT}:9000"
+      - "${VC_MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${VC_MINIO_ROOT_USER} ${VC_MINIO_ROOT_PASSWORD} &&
+      mc mb -p local/${VC_MINIO_BUCKET};
+      true
+      "
+
+volumes:
+  db_data:
+  redis_data:
+  minio_data:
