@@ -15,16 +15,26 @@ RUN mvn -B -DskipTests dependency:go-offline
 COPY src ./src
 RUN mvn -B -DskipTests package
 
+# Convert the uber jar into a layered layout so docker can reuse unchanged layers
+# across deploys (reduces `docker pull` time, especially for large application layers).
+# See: Spring Boot "efficient Docker images" layering.
+RUN cp /workspace/target/*.jar /workspace/application.jar
+RUN java -Djarmode=tools -jar /workspace/application.jar extract --layers --destination extracted
+
 # 2) Runtime stage: smaller JRE image (Eclipse Temurin 21)
 FROM ${RUNTIME_IMAGE}
-WORKDIR /app
+WORKDIR /application
 
-# copy the fat jar produced by Spring Boot
-COPY --from=build /workspace/target/*.jar app.jar
+# Copy each extracted layer as a separate docker layer.
+# Docker can then only pull layers that changed between deploys.
+COPY --from=build /workspace/extracted/dependencies/ ./
+COPY --from=build /workspace/extracted/spring-boot-loader/ ./
+COPY --from=build /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=build /workspace/extracted/application/ ./
 
 # expose the default Spring Boot port (change if your app uses another)
 EXPOSE 8080
 
-# run the Spring Boot executable jar
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Start the (smaller) application jar produced by the extraction step.
+ENTRYPOINT ["java", "-jar", "application.jar"]
 
