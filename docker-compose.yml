@@ -19,7 +19,7 @@ services:
       args:
         BUILDER_IMAGE: ${BUILDER_IMAGE}
         RUNTIME_IMAGE: ${RUNTIME_IMAGE}
-    image: vocalchat-backend:local
+    image: ${BACKEND_IMAGE:-vocalchat-backend:local}
     env_file:
       - .env
     environment:
@@ -43,7 +43,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_BASE_URL: ${VITE_BASE_URL}
-    image: vocalchat-frontend:local
+    image: ${FRONTEND_IMAGE:-vocalchat-frontend:local}
     depends_on:
       backend:
         condition: service_started

@@ -2,14 +2,10 @@ name: Deploy
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+      - master
   workflow_dispatch:
-    inputs:
-      deploy_to_server:
-        description: "Also deploy to remote server via SSH"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -18,13 +14,16 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  IMAGE_TAG: sha-${{ github.sha }}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-push-backend:
     name: Build and Push Backend Image
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,8 +44,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend
           tags: |
-            type=ref,event=tag
-            type=sha,prefix=sha-
+            type=raw,value=${{ env.IMAGE_TAG }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
@@ -57,11 +55,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
   build-and-push-frontend:
     name: Build and Push Frontend Image
     runs-on: ubuntu-latest
-    needs: build-and-push-backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,8 +81,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend
           tags: |
-            type=ref,event=tag
-            type=sha,prefix=sha-
+            type=raw,value=${{ env.IMAGE_TAG }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
@@ -95,7 +93,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VITE_BASE_URL=${{ vars.VITE_BASE_URL || 'http://localhost:8080' }}
+            VITE_BASE_URL=${{ vars.VITE_BASE_URL || 'http://aiassistant.hunger.host' }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
   deploy:
     name: Deploy with Docker Compose
@@ -103,7 +103,6 @@ jobs:
     needs:
       - build-and-push-backend
       - build-and-push-frontend
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_to_server }}
     steps:
       - name: Run remote deploy script
         uses: appleboy/ssh-action@v1.2.0
@@ -116,5 +115,20 @@ jobs:
             set -e
             cd "${{ secrets.DEPLOY_PATH }}"
             docker login ghcr.io -u "${{ secrets.DEPLOY_REGISTRY_USERNAME }}" -p "${{ secrets.DEPLOY_REGISTRY_PASSWORD }}"
+            if [ -d .git ]; then
+              git fetch origin
+              git checkout "${{ github.ref_name }}"
+              git pull --ff-only origin "${{ github.ref_name }}"
+            fi
+            if grep -q '^BACKEND_IMAGE=' .env; then
+              sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend:${{ env.IMAGE_TAG }}|" .env
+            else
+              echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend:${{ env.IMAGE_TAG }}" >> .env
+            fi
+            if grep -q '^FRONTEND_IMAGE=' .env; then
+              sed -i "s|^FRONTEND_IMAGE=.*|FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend:${{ env.IMAGE_TAG }}|" .env
+            else
+              echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend:${{ env.IMAGE_TAG }}" >> .env
+            fi
             docker compose pull
-            docker compose up -d
+            docker compose up -d --remove-orphans
