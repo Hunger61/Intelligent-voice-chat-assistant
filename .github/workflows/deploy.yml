@@ -142,19 +142,28 @@ jobs:
             if [ -d .git ]; then
               echo "[deploy] git sync"
               git_fetch_with_retry() {
-                max_retry=3
+                max_retry=5
                 attempt=1
                 target_branch="${{ github.ref_name }}"
                 while [ "$attempt" -le "$max_retry" ]; do
                   echo "[deploy] git fetch attempt ${attempt}/${max_retry} (branch: ${target_branch})"
 
                   if command -v timeout >/dev/null 2>&1; then
-                    fetch_cmd='timeout 120s git fetch --no-tags --prune --depth=1 origin "'"${target_branch}"'"'
+                    # 参考你在服务器上手动测试成功的参数：
+                    # - CURL_IPRESOLVE=4 强制 IPv4
+                    # - http.version=HTTP/1.1 固定协议族
+                    # - lowSpeedLimit/lowSpeedTime 放宽低速判断，避免抖动时误判失败
+                    # 同时开启 git/curl trace，方便定位偶发网络问题。
+                    timeout 300s env CURL_IPRESOLVE=4 GIT_TRACE_CURL=1 GIT_CURL_VERBOSE=1 \
+                      git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=0 -c http.lowSpeedTime=999999 \
+                      fetch --no-tags --prune --depth=1 origin "${target_branch}"
                   else
-                    fetch_cmd='git fetch --no-tags --prune --depth=1 origin "'"${target_branch}"'"'
+                    env CURL_IPRESOLVE=4 GIT_TRACE_CURL=1 GIT_CURL_VERBOSE=1 \
+                      git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=0 -c http.lowSpeedTime=999999 \
+                      fetch --no-tags --prune --depth=1 origin "${target_branch}"
                   fi
 
-                  if eval "$fetch_cmd"; then
+                  if [ "$?" -eq 0 ]; then
                     return 0
                   fi
                   attempt=$((attempt + 1))
