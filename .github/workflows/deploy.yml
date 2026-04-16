@@ -128,17 +128,26 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          timeout: 60s
+          command_timeout: 60m
+          script_stop: true
           script: |
             set -e
+            export GIT_TERMINAL_PROMPT=0
+            export COMPOSE_HTTP_TIMEOUT=180
+            echo "[deploy] enter path"
             cd "${{ secrets.DEPLOY_PATH }}"
+            echo "[deploy] docker login"
             docker login ghcr.io -u "${{ secrets.DEPLOY_REGISTRY_USERNAME }}" -p "${{ secrets.DEPLOY_REGISTRY_PASSWORD }}"
             if [ -d .git ]; then
+              echo "[deploy] git sync"
               git fetch origin
               git checkout "${{ github.ref_name }}"
               # Keep local ignored files (e.g. .env) intact; align tracked files to remote branch.
               git reset --hard "origin/${{ github.ref_name }}"
               git clean -fd
             fi
+            echo "[deploy] update image env"
             if grep -q '^BACKEND_IMAGE=' .env; then
               sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
             else
@@ -149,5 +158,31 @@ jobs:
             else
               echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
             fi
-            docker compose pull
-            docker compose up -d --remove-orphans
+            BACKEND_IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}"
+            FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}"
+
+            pull_with_retry() {
+              image="$1"
+              max_retry=3
+              attempt=1
+              while [ "$attempt" -le "$max_retry" ]; do
+                echo "[deploy] pull attempt ${attempt}/${max_retry}: ${image}"
+                if command -v timeout >/dev/null 2>&1; then
+                  pull_cmd='timeout 20m docker pull "$image"'
+                else
+                  pull_cmd='docker pull "$image"'
+                fi
+                if eval "$pull_cmd"; then
+                  return 0
+                fi
+                attempt=$((attempt + 1))
+                sleep 10
+              done
+              echo "[deploy] pull failed after ${max_retry} attempts: ${image}"
+              return 1
+            }
+
+            pull_with_retry "$BACKEND_IMAGE"
+            pull_with_retry "$FRONTEND_IMAGE"
+            echo "[deploy] docker compose up"
+            docker compose up -d --remove-orphans --pull never
