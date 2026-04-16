@@ -165,7 +165,7 @@ public class AIAssistantApplicationService {
         List<AIAssistant> aiAssistants = aiAssistantRepository.findByUserId(userId);
         return aiAssistants.stream()
                 .map(aiAssistant -> new AIAssistantVO(
-                        aiAssistant.getId().getId(),
+                        aiAssistant.getId().toString(),
                         aiAssistant.getName() == null ? null : aiAssistant.getName().getName(),
                         aiAssistant.getDescription() == null ? null : aiAssistant.getDescription().getDescription(),
                         aiAssistant.getAssistantCharacter() == null ? null : aiAssistant.getAssistantCharacter().getCharacter()

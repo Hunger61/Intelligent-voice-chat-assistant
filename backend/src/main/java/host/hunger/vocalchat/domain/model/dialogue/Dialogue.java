@@ -2,7 +2,6 @@ package host.hunger.vocalchat.domain.model.dialogue;
 
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
 import host.hunger.vocalchat.domain.model.shared.AggregateRoot;
-import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.event.MessageAddedEvent;
 import lombok.Getter;
 

@@ -1,13 +1,14 @@
 services:
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
+      dockerfile: Dockerfile
       args:
         BUILDER_IMAGE: ${BUILDER_IMAGE}
         RUNTIME_IMAGE: ${RUNTIME_IMAGE}
-    image: vocalchat:local
+    image: vocalchat-backend:local
     ports:
-      - "${APP_PORT}:8080"
+      - "${BACKEND_PORT}:8080"
     env_file:
       - .env
     environment:
@@ -23,6 +24,20 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_BASE_URL: ${VITE_BASE_URL}
+    image: vocalchat-frontend:local
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      backend:
+        condition: service_started
     restart: unless-stopped
 
   mysql:
