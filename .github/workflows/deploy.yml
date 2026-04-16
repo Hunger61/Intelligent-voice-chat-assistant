@@ -118,7 +118,9 @@ jobs:
             if [ -d .git ]; then
               git fetch origin
               git checkout "${{ github.ref_name }}"
-              git pull --ff-only origin "${{ github.ref_name }}"
+              # Keep local ignored files (e.g. .env) intact; align tracked files to remote branch.
+              git reset --hard "origin/${{ github.ref_name }}"
+              git clean -fd
             fi
             if grep -q '^BACKEND_IMAGE=' .env; then
               sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend:${{ env.IMAGE_TAG }}|" .env
