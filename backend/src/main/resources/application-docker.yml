@@ -1,5 +1,7 @@
 spring:
-  profiles: docker
+  config:
+    activate:
+      on-profile: docker
   datasource:
     url: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:vocalchat}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${MYSQL_USER}
