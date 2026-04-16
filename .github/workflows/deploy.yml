@@ -141,11 +141,36 @@ jobs:
             docker login ghcr.io -u "${{ secrets.DEPLOY_REGISTRY_USERNAME }}" -p "${{ secrets.DEPLOY_REGISTRY_PASSWORD }}"
             if [ -d .git ]; then
               echo "[deploy] git sync"
-              git fetch origin
-              git checkout "${{ github.ref_name }}"
-              # Keep local ignored files (e.g. .env) intact; align tracked files to remote branch.
-              git reset --hard "origin/${{ github.ref_name }}"
-              git clean -fd
+              git_fetch_with_retry() {
+                max_retry=3
+                attempt=1
+                target_branch="${{ github.ref_name }}"
+                while [ "$attempt" -le "$max_retry" ]; do
+                  echo "[deploy] git fetch attempt ${attempt}/${max_retry} (branch: ${target_branch})"
+
+                  if command -v timeout >/dev/null 2>&1; then
+                    fetch_cmd='timeout 120s git fetch --no-tags --prune --depth=1 origin "'"${target_branch}"'"'
+                  else
+                    fetch_cmd='git fetch --no-tags --prune --depth=1 origin "'"${target_branch}"'"'
+                  fi
+
+                  if eval "$fetch_cmd"; then
+                    return 0
+                  fi
+                  attempt=$((attempt + 1))
+                  sleep 5
+                done
+                return 1
+              }
+
+              if git_fetch_with_retry; then
+                git checkout -B "${{ github.ref_name }}" "origin/${{ github.ref_name }}"
+                # Keep local ignored files (e.g. .env) intact; align tracked files to remote branch.
+                git reset --hard "origin/${{ github.ref_name }}"
+                git clean -fd
+              else
+                echo "[deploy] WARN: git fetch failed; skipping git sync and continuing deploy"
+              fi
             fi
             echo "[deploy] update image env"
             if grep -q '^BACKEND_IMAGE=' .env; then
