@@ -13,17 +13,31 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: ${{ toLower(github.repository_owner) }}
-  IMAGE_TAG: sha-${{ github.sha }}
 
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  prepare-vars:
+    name: Prepare shared variables
+    runs-on: ubuntu-latest
+    outputs:
+      image_namespace: ${{ steps.vars.outputs.image_namespace }}
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - name: Compute image namespace and tag
+        id: vars
+        shell: bash
+        run: |
+          echo "image_namespace=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
   build-and-push-backend:
     name: Build and Push Backend Image
     runs-on: ubuntu-latest
+    needs:
+      - prepare-vars
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,9 +56,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend
+          images: ${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend
           tags: |
-            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=${{ needs.prepare-vars.outputs.image_tag }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
@@ -61,6 +75,8 @@ jobs:
   build-and-push-frontend:
     name: Build and Push Frontend Image
     runs-on: ubuntu-latest
+    needs:
+      - prepare-vars
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -79,9 +95,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend
+          images: ${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend
           tags: |
-            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=${{ needs.prepare-vars.outputs.image_tag }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
@@ -101,6 +117,7 @@ jobs:
     name: Deploy with Docker Compose
     runs-on: ubuntu-latest
     needs:
+      - prepare-vars
       - build-and-push-backend
       - build-and-push-frontend
     steps:
@@ -123,14 +140,14 @@ jobs:
               git clean -fd
             fi
             if grep -q '^BACKEND_IMAGE=' .env; then
-              sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend:${{ env.IMAGE_TAG }}|" .env
+              sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
             else
-              echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-backend:${{ env.IMAGE_TAG }}" >> .env
+              echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
             fi
             if grep -q '^FRONTEND_IMAGE=' .env; then
-              sed -i "s|^FRONTEND_IMAGE=.*|FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend:${{ env.IMAGE_TAG }}|" .env
+              sed -i "s|^FRONTEND_IMAGE=.*|FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
             else
-              echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/vocalchat-frontend:${{ env.IMAGE_TAG }}" >> .env
+              echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
             fi
             docker compose pull
             docker compose up -d --remove-orphans
