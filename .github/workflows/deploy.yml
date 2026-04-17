@@ -44,6 +44,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.milu.moe"]
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -83,6 +87,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.milu.moe"]
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -135,10 +143,11 @@ jobs:
             set -e
             export GIT_TERMINAL_PROMPT=0
             export COMPOSE_HTTP_TIMEOUT=180
+            DEPLOY_REGISTRY="ghcr.milu.moe"
             echo "[deploy] enter path"
             cd "${{ secrets.DEPLOY_PATH }}"
-            echo "[deploy] docker login"
-            docker login ghcr.io -u "${{ secrets.DEPLOY_REGISTRY_USERNAME }}" -p "${{ secrets.DEPLOY_REGISTRY_PASSWORD }}"
+            echo "[deploy] docker login (${DEPLOY_REGISTRY})"
+            docker login "${DEPLOY_REGISTRY}" -u "${{ secrets.DEPLOY_REGISTRY_USERNAME }}" -p "${{ secrets.DEPLOY_REGISTRY_PASSWORD }}"
             if [ -d .git ]; then
               echo "[deploy] git sync"
               git_fetch_with_retry() {
@@ -183,17 +192,17 @@ jobs:
             fi
             echo "[deploy] update image env"
             if grep -q '^BACKEND_IMAGE=' .env; then
-              sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
+              sed -i "s|^BACKEND_IMAGE=.*|BACKEND_IMAGE=${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
             else
-              echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
+              echo "BACKEND_IMAGE=${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
             fi
             if grep -q '^FRONTEND_IMAGE=' .env; then
-              sed -i "s|^FRONTEND_IMAGE=.*|FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
+              sed -i "s|^FRONTEND_IMAGE=.*|FRONTEND_IMAGE=${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}|" .env
             else
-              echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
+              echo "FRONTEND_IMAGE=${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}" >> .env
             fi
-            BACKEND_IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}"
-            FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}"
+            BACKEND_IMAGE="${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-backend:${{ needs.prepare-vars.outputs.image_tag }}"
+            FRONTEND_IMAGE="${DEPLOY_REGISTRY}/${{ needs.prepare-vars.outputs.image_namespace }}/vocalchat-frontend:${{ needs.prepare-vars.outputs.image_tag }}"
 
             pull_with_retry() {
               image="$1"
