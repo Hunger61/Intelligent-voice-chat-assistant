@@ -1,5 +1,6 @@
 package host.hunger.vocalchat.application.service;
 
+import host.hunger.vocalchat.application.port.EmailService;
 import host.hunger.vocalchat.domain.factory.UserFactory;
 import host.hunger.vocalchat.domain.model.user.NickName;
 import host.hunger.vocalchat.domain.model.user.User;
@@ -8,11 +9,10 @@ import host.hunger.vocalchat.domain.model.user.UserPassword;
 import host.hunger.vocalchat.domain.repository.UserRepository;
 import host.hunger.vocalchat.domain.service.UserDomainService;
 import host.hunger.vocalchat.infrastructure.cache.redis.RedisKeys;
-import host.hunger.vocalchat.infrastructure.external.email.EmailService;
-import host.hunger.vocalchat.infrastructure.util.JwtUtil;
-import host.hunger.vocalchat.infrastructure.util.RedisUtil;
+import host.hunger.vocalchat.shared.enums.ErrorEnum;
+import host.hunger.vocalchat.shared.util.JwtUtil;
+import host.hunger.vocalchat.shared.util.RedisUtil;
 import host.hunger.vocalchat.infrastructure.exception.BaseException;
-import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,9 +1,10 @@
 package host.hunger.vocalchat.api.rest.result;
 
-import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
 import lombok.Data;
 
 import java.io.Serializable;
+
+import host.hunger.vocalchat.shared.enums.ErrorEnum;
 
 @Data
 public class BaseResult<T> implements Serializable {

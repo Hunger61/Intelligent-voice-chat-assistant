@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.external.email;
+package host.hunger.vocalchat.application.port;
 
 public interface EmailService {
     void sendSimpleEmail(String to, String subject, String content);

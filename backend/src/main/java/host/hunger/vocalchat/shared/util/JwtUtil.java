@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.util;
+package host.hunger.vocalchat.shared.util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;

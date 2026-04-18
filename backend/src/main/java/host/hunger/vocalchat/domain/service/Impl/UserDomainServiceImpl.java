@@ -1,17 +1,16 @@
-package host.hunger.vocalchat.domain.service.Impl;
+package host.hunger.vocalchat.domain.service.impl;
 
+import host.hunger.vocalchat.domain.enums.DefaultAIAssistants;
 import host.hunger.vocalchat.domain.factory.AIAssistantFactory;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.user.User;
 import host.hunger.vocalchat.domain.model.user.UserEmail;
 import host.hunger.vocalchat.domain.model.user.UserId;
-import host.hunger.vocalchat.domain.model.user.UserPassword;
 import host.hunger.vocalchat.domain.repository.AIAssistantRepository;
 import host.hunger.vocalchat.domain.repository.UserRepository;
 import host.hunger.vocalchat.domain.service.UserDomainService;
-import host.hunger.vocalchat.infrastructure.Enum.DefaultAIAssistants;
 import host.hunger.vocalchat.infrastructure.exception.BaseException;
-import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
+import host.hunger.vocalchat.shared.enums.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +33,7 @@ public class UserDomainServiceImpl implements UserDomainService {
 
     @Override
     public void addDefaultAIAssistants(UserId userId) {
-        AIAssistant aiAssistant = AIAssistantFactory.createDeaultAIAssistant(DefaultAIAssistants.XIAO_ZHI);
+        AIAssistant aiAssistant = AIAssistantFactory.createDefaultAIAssistant(DefaultAIAssistants.XIAO_ZHI);
         aiAssistant.setUserId(userId);
         aiAssistantRepository.save(aiAssistant);
     }

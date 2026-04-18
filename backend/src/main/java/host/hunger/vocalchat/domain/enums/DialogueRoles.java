@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.Enum;
+package host.hunger.vocalchat.domain.enums;
 
 public enum DialogueRoles {
     USER,

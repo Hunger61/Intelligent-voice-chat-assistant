@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.util;
+package host.hunger.vocalchat.shared.util;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;

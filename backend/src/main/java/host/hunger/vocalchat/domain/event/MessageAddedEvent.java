@@ -1,8 +1,8 @@
 package host.hunger.vocalchat.domain.event;
 
+import host.hunger.vocalchat.domain.enums.DialogueRoles;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContent;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueId;
-import host.hunger.vocalchat.infrastructure.Enum.DialogueRoles;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

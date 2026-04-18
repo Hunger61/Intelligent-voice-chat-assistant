@@ -7,7 +7,7 @@ import host.hunger.vocalchat.api.rest.dto.UserRegisterDTO;
 import host.hunger.vocalchat.api.rest.vo.UserInfoVO;
 import host.hunger.vocalchat.application.service.UserApplicationService;
 import host.hunger.vocalchat.domain.model.user.User;
-import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
+import host.hunger.vocalchat.shared.context.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -44,15 +44,18 @@ public class UserController {
     @PostMapping("/logout")
     @AutoResult
     public void logout() {
-        User user = UserInterceptor.userHolder.get();
+        User user = UserContext.require();
         userApplicationService.logout(user);
     }
 
     @GetMapping("/info")
     @AutoResult
     public UserInfoVO getUserInfo() {
-        User user = UserInterceptor.userHolder.get();
-        return null;
-    }//todo
+        User user = UserContext.require();
+        return new UserInfoVO(
+                user.getId() == null ? null : user.getId().toString(),
+                user.getNickName() == null ? null : user.getNickName().getNickName(),
+                user.getEmail() == null ? null : user.getEmail().getEmail());
+    }
 
 }

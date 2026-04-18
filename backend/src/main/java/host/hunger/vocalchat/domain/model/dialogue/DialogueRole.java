@@ -1,7 +1,7 @@
 package host.hunger.vocalchat.domain.model.dialogue;
 
+import host.hunger.vocalchat.domain.enums.DialogueRoles;
 import host.hunger.vocalchat.domain.model.shared.ValueObject;
-import host.hunger.vocalchat.infrastructure.Enum.DialogueRoles;
 import lombok.Getter;
 
 import java.util.Locale;

@@ -1,11 +1,12 @@
-package host.hunger.vocalchat.infrastructure.external.email.impl;
+package host.hunger.vocalchat.infrastructure.external.email;
 
-import host.hunger.vocalchat.infrastructure.external.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import host.hunger.vocalchat.application.port.EmailService;
 
 @Service
 @RequiredArgsConstructor

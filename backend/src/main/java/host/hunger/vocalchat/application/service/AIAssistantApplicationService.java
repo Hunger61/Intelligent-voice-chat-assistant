@@ -2,6 +2,7 @@ package host.hunger.vocalchat.application.service;
 
 import ai.djl.util.Pair;
 import host.hunger.vocalchat.api.rest.vo.AIAssistantVO;
+import host.hunger.vocalchat.domain.enums.DialogueRoles;
 import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.factory.AIAssistantFactory;
 import host.hunger.vocalchat.domain.factory.DialogueFactory;
@@ -14,10 +15,9 @@ import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.AIAssistantRepository;
 import host.hunger.vocalchat.domain.repository.DialogueRepository;
 import host.hunger.vocalchat.domain.service.QuestionAnsweringService;
-import host.hunger.vocalchat.infrastructure.Enum.DialogueRoles;
-import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
 import host.hunger.vocalchat.infrastructure.exception.BaseException;
-import host.hunger.vocalchat.infrastructure.Enum.ErrorEnum;
+import host.hunger.vocalchat.shared.context.UserContext;
+import host.hunger.vocalchat.shared.enums.ErrorEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -144,7 +144,7 @@ public class AIAssistantApplicationService {
         AIAssistantName aiAssistantName = new AIAssistantName(name);
         AIAssistantDescription aiAssistantDescription = new AIAssistantDescription(description);
         AIAssistantCharacter aiAssistantCharacter = new AIAssistantCharacter(character);
-        UserId userId = UserInterceptor.userHolder.get().getId();
+        UserId userId = UserContext.require().getId();
         AIAssistant newAIAssistant = AIAssistantFactory.createNewAIAssistant(userId, aiAssistantName, aiAssistantDescription, aiAssistantCharacter);
         aiAssistantRepository.save(newAIAssistant);
         Dialogue dialogue = DialogueFactory.createNewDialogue(newAIAssistant.getId());
@@ -161,7 +161,7 @@ public class AIAssistantApplicationService {
     }
 
     public List<AIAssistantVO> getAIAssistants() {
-        UserId userId = UserInterceptor.userHolder.get().getId();
+        UserId userId = UserContext.require().getId();
         List<AIAssistant> aiAssistants = aiAssistantRepository.findByUserId(userId);
         return aiAssistants.stream()
                 .map(aiAssistant -> new AIAssistantVO(
@@ -171,5 +171,5 @@ public class AIAssistantApplicationService {
                         aiAssistant.getAssistantCharacter() == null ? null : aiAssistant.getAssistantCharacter().getCharacter()
                 ))
                 .toList();
-    }
+    }//todo 可能需要分页，且需要将VO映射放到上层
 }

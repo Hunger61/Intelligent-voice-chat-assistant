@@ -1,4 +1,4 @@
-package host.hunger.vocalchat.infrastructure.Enum;
+package host.hunger.vocalchat.domain.enums;
 
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantCharacter;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantDescription;

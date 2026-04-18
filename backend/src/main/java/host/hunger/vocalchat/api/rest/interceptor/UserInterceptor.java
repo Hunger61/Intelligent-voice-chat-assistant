@@ -1,10 +1,11 @@
-package host.hunger.vocalchat.infrastructure.interceptor;
+package host.hunger.vocalchat.api.rest.interceptor;
 
 import host.hunger.vocalchat.api.rest.annotation.SkipToken;
 import host.hunger.vocalchat.domain.model.user.User;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.UserRepository;
-import host.hunger.vocalchat.infrastructure.util.JwtUtil;
+import host.hunger.vocalchat.shared.context.UserContext;
+import host.hunger.vocalchat.shared.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +19,6 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class UserInterceptor implements HandlerInterceptor {
-
-    public static final ThreadLocal<User> userHolder = new ThreadLocal<>();
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
@@ -55,7 +54,7 @@ public class UserInterceptor implements HandlerInterceptor {
             return false;
         }else {
             User user = userOptional.get();
-            userHolder.set(user);
+            UserContext.set(user);
             return true;
         }
     }
@@ -66,6 +65,6 @@ public class UserInterceptor implements HandlerInterceptor {
             @NotNull HttpServletResponse response,
             @NotNull Object handler,
             Exception ex) {
-        userHolder.remove();
+        UserContext.clear();
     }
 }

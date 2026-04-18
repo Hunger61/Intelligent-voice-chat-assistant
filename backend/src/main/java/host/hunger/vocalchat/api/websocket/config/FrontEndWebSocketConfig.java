@@ -6,8 +6,8 @@ import host.hunger.vocalchat.api.websocket.interceptor.FrontEndWebSocketIntercep
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
 import host.hunger.vocalchat.domain.event.DomainEventPublisher;
 import host.hunger.vocalchat.domain.repository.UserRepository;
-import host.hunger.vocalchat.infrastructure.util.JwtUtil;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
+import host.hunger.vocalchat.shared.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

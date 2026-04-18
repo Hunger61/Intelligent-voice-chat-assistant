@@ -3,7 +3,7 @@ package host.hunger.vocalchat.api.websocket.interceptor;
 import host.hunger.vocalchat.domain.model.user.User;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.UserRepository;
-import host.hunger.vocalchat.infrastructure.util.JwtUtil;
+import host.hunger.vocalchat.shared.util.JwtUtil;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;

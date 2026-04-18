@@ -1,14 +1,15 @@
 package host.hunger.vocalchat.domain.factory;
 
+import host.hunger.vocalchat.domain.enums.DefaultAIAssistants;
 import host.hunger.vocalchat.domain.model.aiassistant.*;
 import host.hunger.vocalchat.domain.model.user.UserId;
-import host.hunger.vocalchat.infrastructure.Enum.DefaultAIAssistants;
+
 import org.springframework.stereotype.Component;
 
 @Component
 public class AIAssistantFactory {
 
-    public static AIAssistant createDeaultAIAssistant(DefaultAIAssistants defaultAIAssistant) {
+    public static AIAssistant createDefaultAIAssistant(DefaultAIAssistants defaultAIAssistant) {
         return new AIAssistant(defaultAIAssistant.getName(), defaultAIAssistant.getDescription(), defaultAIAssistant.getCharacter());
     }
 

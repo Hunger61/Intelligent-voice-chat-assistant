@@ -1,10 +1,11 @@
-package host.hunger.vocalchat.infrastructure.config;
+package host.hunger.vocalchat.api.rest.config;
 
-import host.hunger.vocalchat.infrastructure.interceptor.UserInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import host.hunger.vocalchat.api.rest.interceptor.UserInterceptor;
 
 @Configuration
 @RequiredArgsConstructor
@@ -16,7 +17,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/register", "/login", "/getValidateCode");
+                .excludePathPatterns(
+                        "/api/public/user/register",
+                        "/api/public/user/login",
+                        "/api/public/user/getVerificationCode");
     }
 
 }
