@@ -2,7 +2,7 @@ package host.hunger.vocalchat.api.rest.controller;
 
 import ai.djl.util.Pair;
 import host.hunger.vocalchat.api.rest.annotation.AutoResult;
-import host.hunger.vocalchat.api.rest.annotation.SkipToken;
+import host.hunger.vocalchat.api.rest.annotation.OperateLog;
 import host.hunger.vocalchat.api.rest.dto.AIAssistantConfigDTO;
 import host.hunger.vocalchat.api.rest.dto.QuestionDTO;
 import host.hunger.vocalchat.api.rest.vo.AIAssistantVO;
@@ -31,20 +31,21 @@ public class AIAssistantController {
 
 
     @PostMapping("/createNewAssistant")
+    @OperateLog("创建助手")
     public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
         aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter());
     }
 
     //弃用
     @PostMapping("/generateReply")
-    @SkipToken
     @AutoResult
+    @OperateLog("生成回复")
     public String generateReply(@RequestBody QuestionDTO questionDTO) {
         return aiAssistantApplicationService.answerQuestion(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
     }
 
     @PostMapping(value = "/streamGenerateReply", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @SkipToken
+    @OperateLog("流式生成回复")
     public SseEmitter streamGenerateReply(@RequestBody QuestionDTO questionDTO) {
         log.info("[SSE] POST /streamGenerateReply received: aiAssistantId={}, questionLength={}", questionDTO.getAiAssistantId(), questionDTO.getQuestion() == null ? 0 : questionDTO.getQuestion().length());
         return startStreaming(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
@@ -111,12 +112,14 @@ public class AIAssistantController {
 
     @AutoResult
     @GetMapping("/aiAssistants")
+    @OperateLog("查询助手列表")
     public List<AIAssistantVO> getAIAssistants() {
         return aiAssistantApplicationService.getAIAssistants();
     }
 
     @AutoResult
     @GetMapping("/{aiAssistantId}/conversation-log")
+    @OperateLog("查询会话记录")
     public List<Pair<String, String>> getConversationLog(@PathVariable String aiAssistantId) {
         return aiAssistantApplicationService.getConversationLog(aiAssistantId);
     }

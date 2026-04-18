@@ -1,6 +1,7 @@
 package host.hunger.vocalchat.api.rest.controller;
 
 import host.hunger.vocalchat.api.rest.annotation.AutoResult;
+import host.hunger.vocalchat.api.rest.annotation.OperateLog;
 import host.hunger.vocalchat.api.rest.annotation.SkipToken;
 import host.hunger.vocalchat.api.rest.dto.UserLoginDTO;
 import host.hunger.vocalchat.api.rest.dto.UserRegisterDTO;
@@ -22,6 +23,7 @@ public class UserController {
 
     @PostMapping("/register")
     @AutoResult
+    @OperateLog("用户注册")
     @SkipToken
     public String register(@RequestBody UserRegisterDTO userRegisterDTO) {
         return userApplicationService.registerUser(userRegisterDTO.getNickName(), userRegisterDTO.getPassword(), userRegisterDTO.getEmail(), userRegisterDTO.getVerificationCode());
@@ -29,6 +31,7 @@ public class UserController {
 
     @PostMapping("/login")
     @AutoResult
+    @OperateLog("用户登录")
     @SkipToken
     public String login(@RequestBody UserLoginDTO userLoginDTO) {
         return userApplicationService.login(userLoginDTO.getEmail(), userLoginDTO.getPassword());
@@ -36,6 +39,7 @@ public class UserController {
 
     @PostMapping("/getVerificationCode")
     @AutoResult
+    @OperateLog("发送验证码")
     @SkipToken
     public void getVerificationCode(@RequestParam String email) {
         userApplicationService.sendVerificationCode(email);
@@ -43,6 +47,7 @@ public class UserController {
 
     @PostMapping("/logout")
     @AutoResult
+    @OperateLog("用户登出")
     public void logout() {
         User user = UserContext.require();
         userApplicationService.logout(user);
@@ -50,6 +55,7 @@ public class UserController {
 
     @GetMapping("/info")
     @AutoResult
+    @OperateLog("查询用户信息")
     public UserInfoVO getUserInfo() {
         User user = UserContext.require();
         return new UserInfoVO(
