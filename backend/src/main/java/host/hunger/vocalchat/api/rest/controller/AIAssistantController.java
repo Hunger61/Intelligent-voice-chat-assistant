@@ -7,6 +7,8 @@ import host.hunger.vocalchat.api.rest.dto.AIAssistantConfigDTO;
 import host.hunger.vocalchat.api.rest.dto.QuestionDTO;
 import host.hunger.vocalchat.api.rest.vo.AIAssistantVO;
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
+import host.hunger.vocalchat.domain.model.user.UserId;
+import host.hunger.vocalchat.shared.context.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/public/aiAssistant")
+@RequestMapping("/api/aiAssistant")
 public class AIAssistantController {
 
     private final AIAssistantApplicationService aiAssistantApplicationService;
@@ -33,9 +35,9 @@ public class AIAssistantController {
     @PostMapping("/createNewAssistant")
     @OperateLog("创建助手")
     public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
-        aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter());
+        aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
     }
-
+    
     //弃用
     @PostMapping("/generateReply")
     @AutoResult
@@ -114,7 +116,16 @@ public class AIAssistantController {
     @GetMapping("/aiAssistants")
     @OperateLog("查询助手列表")
     public List<AIAssistantVO> getAIAssistants() {
-        return aiAssistantApplicationService.getAIAssistants();
+        UserId userId = UserContext.require().getId();
+        return aiAssistantApplicationService.getAIAssistants(userId).stream()
+                .map(aiAssistant -> new AIAssistantVO(
+                        aiAssistant.getId().toString(),
+                        aiAssistant.getName() == null ? null : aiAssistant.getName().getName(),
+                        aiAssistant.getDescription() == null ? null : aiAssistant.getDescription().getDescription(),
+                        aiAssistant.getAssistantCharacter() == null ? null : aiAssistant.getAssistantCharacter().getCharacter(),
+                        aiAssistant.getKnowledgeBaseId() == null ? null : aiAssistant.getKnowledgeBaseId().toString()
+                ))
+                .toList();
     }
 
     @AutoResult

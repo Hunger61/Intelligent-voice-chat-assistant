@@ -110,9 +110,16 @@ class UserService {
    * 处理响应
    * @param {Response} response - fetch响应对象
    */
-   static async _handleResponse(response) {
+  static async _handleResponse(response) {
     // 首先检查HTTP状态码
     if (!response.ok) {
+        // 处理401未授权错误
+        if (response.status === 401) {
+            clearAuthToken();
+            window.location.href = '/static/';
+            throw new Error('登录已过期，请重新登录');
+        }
+        
         const errorText = await response.text();
         if (!errorText) {
           throw new Error(`请求失败: ${response.status} - ${response.statusText}`);
@@ -152,8 +159,6 @@ class UserService {
     if (typeof result?.data?.token === 'string') return result.data.token;
     return null;
   }
-
-  // 其他方法保持不变...
 }
 
 

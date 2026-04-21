@@ -3,7 +3,7 @@ package host.hunger.vocalchat.infrastructure.repository.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import host.hunger.vocalchat.domain.model.aiassistant.*;
-import host.hunger.vocalchat.domain.model.user.User;
+import host.hunger.vocalchat.domain.model.knowledgeabase.KnowledgeBaseId;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.AIAssistantRepository;
 import host.hunger.vocalchat.infrastructure.repository.persistence.entity.AIAssistantDO;
@@ -40,10 +40,11 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
 
     @Override
     public void save(AIAssistant aiAssistant) {
-        if(aiAssistant.getId() != null && !aiAssistant.getId().toString().isBlank()){
-            aiAssistantMapper.updateById(toDataObject(aiAssistant));
+        AIAssistantDO aiAssistantDO = toDataObject(aiAssistant);
+        if (exists(aiAssistant.getId())){
+            aiAssistantMapper.updateById(aiAssistantDO);
         }else{
-            aiAssistantMapper.insert(toDataObject(aiAssistant));
+            aiAssistantMapper.insert(aiAssistantDO);
         }
     }
 
@@ -61,7 +62,8 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
                 new UserId(assistantDO.getUserId()),
                 new AIAssistantName(assistantDO.getName()),
                 new AIAssistantDescription(assistantDO.getDescription()),
-                new AIAssistantCharacter(assistantDO.getAssistantCharacter())
+                new AIAssistantCharacter(assistantDO.getAssistantCharacter()),
+                new KnowledgeBaseId(assistantDO.getKnowledgeBaseId())
         );
     }
 
@@ -74,9 +76,12 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
             assistantDO.setId(assistant.getId().toString());
         }
         assistantDO.setUserId(assistant.getUserId().toString());
-        assistantDO.setName(assistant.getName().toString());
-        assistantDO.setDescription(assistant.getDescription().toString());
-        assistantDO.setAssistantCharacter(assistant.getAssistantCharacter().toString());
+        assistantDO.setName(assistant.getName().getName());
+        assistantDO.setDescription(assistant.getDescription().getDescription());
+        assistantDO.setAssistantCharacter(assistant.getAssistantCharacter().getCharacter());
+        if (assistant.getKnowledgeBaseId() != null){
+            assistantDO.setKnowledgeBaseId(assistant.getKnowledgeBaseId().toString());
+        }
         return assistantDO;
     }
 

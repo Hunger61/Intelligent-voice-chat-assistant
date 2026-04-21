@@ -30,6 +30,9 @@ public class AIAssistantDO {
     @TableField("assistant_character")
     private String assistantCharacter;
 
+    @TableField("knowledge_base_id")
+    private String knowledgeBaseId;
+
     @TableField("created_at")
     private LocalDateTime createdAt;
 

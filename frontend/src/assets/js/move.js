@@ -1,5 +1,7 @@
 import gsap from 'gsap';
-import store from '../../store' // 导入 Vuex store
+import store from '../../store';
+import AssistantService from '../../api/assistant.js';
+
 const imageModules = import.meta.glob('../img/*.jpg', { eager: true });
 export const photobox = {
     // 添加交互状态控制变量，设为false则禁用所有交互
@@ -117,7 +119,7 @@ export const photobox = {
     },
     // 自动移动相关参数
     autoMove: {
-        enabled: false, // 是否启用自动移动
+        enabled: true, // 是否启用自动移动，默认启用
         timer: null,    // 计时器
         interval: 2000, // 3秒无操作后开始自动移动
         speed: 0.5,     // 自动移动速度
@@ -137,9 +139,22 @@ export const photobox = {
         damping: t => .90 * t //阻尼函数
     },
     // 初始化
-    init() {
+    init(retryCount = 3) {
         this.canvas = document.querySelector(".photobox");
+        if (!this.canvas) {
+            console.warn(`Canvas element not found. Attempting retry (${retryCount} remaining)...`);
+            if (retryCount > 0) {
+                setTimeout(() => {
+                    this.init(retryCount - 1);
+                }, 100);
+            }
+            return;
+        }
         this.content = this.canvas.getContext("2d");
+        if (!this.content) {
+            console.warn('Canvas context not available. Skipping initialization.');
+            return;
+        }
         this.total_width = this.row_max * (this.img_width + this.img_margin) - this.img_margin;
         this.total_height = this.line_max * (this.img_height + this.img_margin) - this.img_margin;
 
@@ -179,10 +194,15 @@ export const photobox = {
         this.resize();
         this.creat_events();
         this.creat_img_data();
-        this.reset_auto_move_timer();
+        // 初始化时不重置自动移动计时器，保持autoMove.enabled为true
+        this.autoMove.lastTime = performance.now();
         this.animate();
     },
     resize() {
+        if (!this.canvas) {
+            console.warn('Canvas element not available. Skipping resize.');
+            return;
+        }
         this.canvas.width = this.canvas.clientWidth;
         this.canvas.height = this.canvas.clientHeight;
         if (this.img_data) this.render_images();
@@ -237,6 +257,11 @@ export const photobox = {
         window.addEventListener("resize", () => {
             this.resize();
         });
+
+        if (!this.canvas) {
+            console.warn('Canvas element not available. Skipping event creation.');
+            return;
+        }
 
         // 鼠标事件 - 全部添加交互状态判断
         this.canvas.addEventListener("mousedown", (e) => {
@@ -386,6 +411,10 @@ export const photobox = {
 
     // 渲染图片
     render_images() {
+        if (!this.canvas || !this.content) {
+            console.warn('Canvas or context not available. Skipping render.');
+            return;
+        }
         this.content.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.img_data.forEach((item) => {
@@ -528,13 +557,25 @@ export const photobox = {
 
             // 9. 通过 Vuex 存储当前点击的助手信息（核心：将点击事件传递给 Vuex）
             // 延迟2秒执行操作
-            setTimeout(() => {
+            setTimeout(async () => {
+                try {
+                    await AssistantService.add({
+                        name: clickedAssistant.name,
+                        description: clickedAssistant.description,
+                        character: clickedAssistant.character,
+                        knowledge_base_id: clickedAssistant.knowledge_base_id
+                    });
+                    console.log(`助手 ${clickedAssistant.name} 已保存到数据库`);
+                } catch (error) {
+                    console.error('保存助手失败:', error);
+                }
+
                 store.commit('setSelectedId', clickedAssistant.id)
                 store.commit('setCurrentClickedAssistant', {
                     name: clickedAssistant.name,
                     description: clickedAssistant.description,
                     character: clickedAssistant.character,
-                    knowledge_base_id:clickedAssistant.knowledge_base_id
+                    knowledge_base_id: clickedAssistant.knowledge_base_id
                 });
 
 

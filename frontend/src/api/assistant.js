@@ -1,14 +1,14 @@
-import { getAuthToken } from './auth.js';
+import { getAuthToken, clearAuthToken } from './auth.js';
 
 class AssistantService {
   /**
    * 添加新的语音助手
-   * @param {Object} assistantData 
+   * @param {Object} assistantData
    */
   static async add(assistantData) {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/public/aiAssistant/createNewAssistant', {
+      const response = await fetch('/api/aiAssistant/createNewAssistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -17,7 +17,8 @@ class AssistantService {
         body: JSON.stringify({
           name: assistantData.name,
           description: assistantData.description,
-          character: assistantData.character || '你是一个AI语音助手'
+          character: assistantData.character || '你是一个AI语音助手',
+          knowledgeBaseId: assistantData.knowledge_base_id || ''
         })
       });
       if (!response.ok) {
@@ -39,16 +40,16 @@ class AssistantService {
   /**
    * 获取所有语音助手
    */
-  static async findAll(id) {
+  static async findAll() {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/public/aiAssistant/aiAssistants', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Token: token } : {})
-        }
-      });
+      const response = await fetch('/api/aiAssistant/aiAssistants', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Token: token } : {})
+              }
+            });
 
       return this._handleResponse(response);
     } catch (error) {
@@ -65,7 +66,7 @@ class AssistantService {
    * @param {string} name  
    * @param {string} description
    */
-  static async modifyCommon(id, name, description,character,knowledge_base_id) {
+  static async modifyCommon(id, name, description, character, knowledge_base_id) {
     throw new Error('该接口后端未实现：modify assistant');
   }
 
@@ -79,7 +80,7 @@ class AssistantService {
 
   static async getConversationLog(aiAssistantId) {
     const token = getAuthToken();
-    const response = await fetch(`/api/public/aiAssistant/${aiAssistantId}/conversation-log`, {
+    const response = await fetch(`/api/aiAssistant/${aiAssistantId}/conversation-log`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -91,13 +92,16 @@ class AssistantService {
 
   static async streamGenerateReply({ question, aiAssistantId, signal, onStarted, onToken, onFallback, onDone, onError }) {
     const token = getAuthToken();
-    const response = await fetch('/api/public/aiAssistant/streamGenerateReply', {
+    const response = await fetch('/api/aiAssistant/streamGenerateReply', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Token: token } : {})
       },
-      body: JSON.stringify({ question, aiAssistantId }),
+      body: JSON.stringify({
+        question,
+        aiAssistantId
+      }),
       signal
     });
 
@@ -141,12 +145,19 @@ class AssistantService {
   }
 
   /**
- * 处理响应
- * @param {Response} response 
- * @returns 
- */
+   * 处理响应
+   * @param {Response} response
+   * @returns
+   */
   static async _handleResponse(response) {
     if (!response.ok) {
+      // 处理401未授权错误
+      if (response.status === 401) {
+        clearAuthToken();
+        window.location.href = '/static/';
+        throw new Error('登录已过期，请重新登录');
+      }
+
       const errorText = await response.text();
       throw new Error(errorText || `HTTP error! status: ${response.status}`);
     }
@@ -161,6 +172,7 @@ class AssistantService {
         if (parsed.success === false) {
           throw new Error(parsed.message || 'Request failed');
         }
+        // 直接返回 parsed 对象，前端通过 response.data 获取实际数据
         return parsed;
       }
       return { success: true, data: parsed };

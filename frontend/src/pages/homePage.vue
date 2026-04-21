@@ -64,7 +64,7 @@
 
 
           <div class="ais mt-3 flex-1 overflow-x-auto overflow-y-auto  ">
-            <draggable v-model="store.state.assistants" class="user-select-none" itemKey="Id" :options="{
+            <draggable v-model="localAssistants" class="user-select-none" itemKey="id" :options="{
               animation: 150,
               ghostClass: 'drag-ghost',
               chosenClass: 'drag-chosen',
@@ -618,6 +618,9 @@ import { useStore } from 'vuex'  //全局变量依赖
 import { useRouter, useRoute } from 'vue-router' //路由依赖
 import draggable from 'vuedraggable'//助手列表拖动
 
+// 本地助手列表，用于 draggable 组件
+const localAssistants = ref([])
+
 import { toggleMicrophone, WebRTC, closeWebRTC } from '../assets/js/webRTCAll.js'  //webRTC
 import AssistantService from '../api/assistant.js'; //ai助手增删改查的api调用封装
 import MessageService from '../api/message.js'; //聊天信息api调用封装
@@ -985,18 +988,22 @@ const newAssistant = ref({
   knowledge_base_id: ""
 });
 
+// 监听 store 中的助手列表变化
+watch(() => store.getters.getAllAssistants, (newAssistants) => {
+  localAssistants.value = newAssistants;
+}, { deep: true });
+
 // 页面加载时自动调用显示所有ai助手
 onBeforeMount(async () => {
 
   try {
     const SeId = store.getters.getSelectedId
     isLoading.value = true
-    const response = await AssistantService.findAll(store.getters.getUser.id);
-    console.log(response)
-    // 确保只取 data 字段（根据您的API结构）
-    const assistants = response.data || response;
-    console.log('assistants', assistants)
+    const response = await AssistantService.findAll();
+    const assistants = response.data || [];
     store.commit('setAssistants', assistants)
+    // 同步到本地助手列表
+    localAssistants.value = store.getters.getAllAssistants;
     for (let i = 0; i < assistants.length; i++) {
       const history = assistants[i].messageHistory || []
       store.commit('setNewMessagebyId', {
@@ -1004,14 +1011,14 @@ onBeforeMount(async () => {
         data: history
       })
 
-      if (SeId == assistants[i].id) {
+      if (SeId === assistants[i].id) {
         messageHeight.value = history.length
       }
     }
-    if (SeId == 0) {
+    if (SeId === 0 && store.getters.getAllAssistants.length > 0) {
       store.commit('setSelectedId', store.getters.getAllAssistants[0].id);
-      console.log('初始助手id', store.getters.getSelectedId)
       messageHeight.value = (store.getters.getAllAssistants[0].messageHistory || []).length
+    } else if (SeId === 0) {
     } else {
       store.commit('setSelectedId', SeId);
     }
@@ -1054,7 +1061,7 @@ const addAssistant = async () => {
       knowledge_base_id: ""
     });
 
-    const assistantsResponse = await AssistantService.findAll(store.getters.getUser.id);
+    const assistantsResponse = await AssistantService.findAll();
     const assistants = assistantsResponse.data || assistantsResponse;
     store.commit('setAssistants', assistants)
 

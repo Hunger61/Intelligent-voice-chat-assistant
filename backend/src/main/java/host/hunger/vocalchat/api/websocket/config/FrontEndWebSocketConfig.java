@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import host.hunger.vocalchat.api.websocket.handler.FrontEndWebSocketHandler;
 import host.hunger.vocalchat.api.websocket.interceptor.FrontEndWebSocketInterceptor;
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
-import host.hunger.vocalchat.domain.event.DomainEventPublisher;
 import host.hunger.vocalchat.domain.repository.UserRepository;
 import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
 import host.hunger.vocalchat.shared.util.JwtUtil;
