@@ -2,6 +2,11 @@ spring:
   config:
     activate:
       on-profile: docker
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
   datasource:
     url: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:vocalchat}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${MYSQL_USER}

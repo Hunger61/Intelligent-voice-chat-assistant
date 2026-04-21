@@ -216,7 +216,8 @@ const store = createStore({
     * @param {Array} assistants - 新的助手列表数组
     */
         setAssistants(state, assistants) {
-            state.assistants = assistants
+            // 确保 assistants 是数组
+            state.assistants = Array.isArray(assistants) ? assistants : []
         },
 
         /**
@@ -649,48 +650,15 @@ const store = createStore({
         // 获取特定会话对象
         getRTMbyId: state => (id) => {
             let conversation = state.robotTestMessage.find(item => item.id === id);
-
-            if (!conversation) {
-                console.warn(`会话 ID ${id} 不存在，自动创建（不推荐在 getter 中修改 state）`);
-
-                conversation = {
-                    id,
-                    messages: []
-                };
-
-                state.robotTestMessage.push(conversation);
-            }
-            return conversation;
+            return conversation || { id, messages: [] };
         },
         getNewMessagebyId: state => (id) => {
             let conversation = state.newMessage.find(item => item.id === id);
-
-            if (!conversation) {
-                console.warn(`会话 ID ${id} 不存在，自动创建（不推荐在 getter 中修改 state）`);
-
-                conversation = {
-                    id,
-                    messages: []
-                };
-
-                state.newMessage.push(conversation);
-            }
-            return conversation;
+            return conversation || { id, messages: [] };
         },
         getAssistantMessagebyId: state => (id) => {
             let conversation = state.oldMessage.find(item => item.id === id);
-
-            if (!conversation) {
-                console.warn(`会话 ID ${id} 不存在，自动创建（不推荐在 getter 中修改 state）`);
-
-                conversation = {
-                    id,
-                    messages: []
-                };
-
-                state.oldMessage.push(conversation);
-            }
-            return conversation;
+            return conversation || { id, messages: [] };
         },
         getNewMessage: state => state.newMessage,
         getOldMessage: state => state.oldMessage,

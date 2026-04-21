@@ -191,16 +191,8 @@ const newAssistant = ref({
 })
 
 // 初始化画廊（在组件挂载后执行）
-onBeforeMount(async () => {
-    try {
-        const response = await AssistantService.findAll(store.getters.getUser.id);
-        const assistants = response.data || response;
-        store.commit('setAssistants', assistants);
-        const userAssistants = store.state.assistants;
-    } catch (err) {
-        console.error('加载助手列表失败:', err);
-    }
-    photobox.init(); // 手动初始化，确保DOM已加载
+onMounted(() => {
+    photobox.init();
     emit('page-loaded')
 });
 
@@ -298,6 +290,10 @@ const submitForm = async () => {
 
             photobox.interactive = true
             issuccessLogin.value = false
+            // 登录成功后初始化photobox，此时canvas元素已经显示
+            setTimeout(() => {
+                photobox.init();
+            }, 100);
             //    router.push('/home_page');
         } else {
             console.log('注册提交:', form.value);
@@ -322,6 +318,10 @@ const submitForm = async () => {
 
             photobox.interactive = true
             issuccessLogin.value = false
+            // 注册成功后初始化photobox，此时canvas元素已经显示
+            setTimeout(() => {
+                photobox.init();
+            }, 100);
 
             // 清空表单
             form.value.username = ''
@@ -369,63 +369,17 @@ const currentClickedAssistant = computed(() => {
     return store.getters.getCurrentAssistant
 })
 
-// 2. 监听 Vuex 状态变化：一旦有点击的助手信息，就触发添加
 watch(
     currentClickedAssistant,
     (clickedInfo) => {
-        if (clickedInfo) { // 只有当点击信息存在时才执行
-            // 将点击的助手信息赋值给新增助手表单
+        if (clickedInfo) {
             if (store.getters.getSelectedId == 0) {
-                newAssistant.value = {
-                    name: clickedInfo.name,
-                    description: clickedInfo.description,
-                    character: clickedInfo.character,
-                    knowledge_base_id:clickedInfo.knowledge_base_id
-                }
-                // 调用添加助手的方法
-                addAssistant()
-                // 清空 Vuex 中的点击状态（避免重复添加）
                 store.commit('clearCurrentClickedAssistant')
-            } else {
-                router.push('/home_page');
             }
+            router.push('/home_page');
         }
     },
 )
-
-// 3. 添加助手的方法（修正语法并关联 Vuex 信息）
-const addAssistant = async () => {
-    try {
-        // 检查用户是否登录（避免 userId 不存在报错）
-        const user = store.getters.getUser
-        if (!user?.id) {
-            console.log('请先登录！')
-            return
-        }
-
-        console.log(newAssistant)
-
-        // 调用 Service 层添加助手（使用点击的助手信息）
-        const addedAssistant = await AssistantService.add({
-            userId: user.id,
-            name: newAssistant.value.name.trim(),
-            description: newAssistant.value.description?.trim() || '',
-            character: newAssistant.value.character?.trim() || '你是一个AI语音助手',
-            knowledge_base_id:newAssistant.value.knowledge_base_id
-        })
-
-        // 添加成功处理
-        console.log('添加成功:', addedAssistant)
-        store.commit('addAssistants', addedAssistant) // 假设 store 中有 addAssistants mutation
-        router.push('/home_page');
-
-    } catch (error) {
-        // 错误处理
-        const errorMsg = `添加失败: ${error.message.replace('Error: ', '')}`
-        console.error('添加助手错误:', error)
-
-    }
-}
 </script>
 
 <style scoped>

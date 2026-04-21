@@ -25,7 +25,7 @@ public class JwtUtil {
         return JWT.create()
                 .withSubject(id)
                 .withIssuedAt(new Date())
-                .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
+                .withExpiresAt(new Date(System.currentTimeMillis() + expiration * 1000))
                 .sign(Algorithm.HMAC512(secret));
     }
 

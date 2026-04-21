@@ -20,7 +20,8 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserMapper userMapper;
     @Override
     public Optional<User> findById(UserId userId) {
-        return Optional.empty();
+        UserDO userDO = userMapper.selectById(userId.toString());
+        return Optional.ofNullable(toDomain(userDO));
     }
 
     @Override
@@ -40,7 +41,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public boolean exists(UserId userId) {
-        return false;
+        return userMapper.exists(new LambdaQueryWrapper<UserDO>().eq(UserDO::getId, userId.toString()));
     }
 
 

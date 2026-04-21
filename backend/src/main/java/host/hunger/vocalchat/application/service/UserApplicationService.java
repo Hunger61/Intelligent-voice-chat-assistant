@@ -50,7 +50,7 @@ public class UserApplicationService {
             throw new BaseException(ErrorEnum.EMAIL_ALREADY_USED);
         }
         User user = UserFactory.createWithGeneratedId(nickName, userEmail, userPassword);
-        userDomainService.addDefaultAIAssistants(user.getId());
+        // userDomainService.addDefaultAIAssistants(user.getId());
         userRepository.save(user);
         String token = jwtUtil.createToken(user.getId().toString());
         redisUtil.set(RedisKeys.userKey(user.getId()), "", 86400);//todo

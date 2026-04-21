@@ -1,7 +1,6 @@
 package host.hunger.vocalchat.application.service;
 
 import ai.djl.util.Pair;
-import host.hunger.vocalchat.api.rest.vo.AIAssistantVO;
 import host.hunger.vocalchat.domain.enums.DialogueRoles;
 import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.factory.AIAssistantFactory;
@@ -11,6 +10,7 @@ import host.hunger.vocalchat.domain.model.dialogue.Dialogue;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContent;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueRole;
+import host.hunger.vocalchat.domain.model.knowledgeabase.KnowledgeBaseId;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.repository.AIAssistantRepository;
 import host.hunger.vocalchat.domain.repository.DialogueRepository;
@@ -141,11 +141,16 @@ public class AIAssistantApplicationService {
 
     @Transactional
     public void createNewAssistant(String name, String description, String character) {
+        createNewAssistant(name, description, character, null);
+    }
+
+    @Transactional
+    public void createNewAssistant(String name, String description, String character, String knowledgeBaseId) {
         AIAssistantName aiAssistantName = new AIAssistantName(name);
         AIAssistantDescription aiAssistantDescription = new AIAssistantDescription(description);
         AIAssistantCharacter aiAssistantCharacter = new AIAssistantCharacter(character);
         UserId userId = UserContext.require().getId();
-        AIAssistant newAIAssistant = AIAssistantFactory.createNewAIAssistant(userId, aiAssistantName, aiAssistantDescription, aiAssistantCharacter);
+        AIAssistant newAIAssistant = AIAssistantFactory.createNewAIAssistant(userId, aiAssistantName, aiAssistantDescription, aiAssistantCharacter, new KnowledgeBaseId(knowledgeBaseId));
         aiAssistantRepository.save(newAIAssistant);
         Dialogue dialogue = DialogueFactory.createNewDialogue(newAIAssistant.getId());
         dialogueRepository.save(dialogue);
@@ -160,16 +165,8 @@ public class AIAssistantApplicationService {
                 .toList();
     }
 
-    public List<AIAssistantVO> getAIAssistants() {
-        UserId userId = UserContext.require().getId();
+    public List<AIAssistant> getAIAssistants(UserId userId) {
         List<AIAssistant> aiAssistants = aiAssistantRepository.findByUserId(userId);
-        return aiAssistants.stream()
-                .map(aiAssistant -> new AIAssistantVO(
-                        aiAssistant.getId().toString(),
-                        aiAssistant.getName() == null ? null : aiAssistant.getName().getName(),
-                        aiAssistant.getDescription() == null ? null : aiAssistant.getDescription().getDescription(),
-                        aiAssistant.getAssistantCharacter() == null ? null : aiAssistant.getAssistantCharacter().getCharacter()
-                ))
-                .toList();
-    }//todo 可能需要分页，且需要将VO映射放到上层
+        return aiAssistants;
+    }
 }

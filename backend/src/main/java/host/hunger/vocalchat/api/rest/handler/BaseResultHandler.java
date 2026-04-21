@@ -20,7 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 @Slf4j
 public class BaseResultHandler implements ResponseBodyAdvice<Object> {
 
-    @Resource private ObjectMapper objectMapper;
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 只处理有@ResponseResult注解的接口
@@ -61,11 +62,15 @@ public class BaseResultHandler implements ResponseBodyAdvice<Object> {
         if (body instanceof BaseResult) {
             return body;
         }
-        try {
-            response.getHeaders().set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-            return objectMapper.writeValueAsString(BaseResult.success(body));
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+        if (returnType.getParameterType() == String.class) {
+            try {
+                response.getHeaders().set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                return objectMapper.writeValueAsString(BaseResult.success(body));
+            } catch (JsonProcessingException e) {
+                // 序列化失败时降级，返回未包装的原始对象
+                log.error("Failed to serialize BaseResult for String return type", e);
+                return BaseResult.success(body);
+            }
         }
         return BaseResult.success(body);
     }
