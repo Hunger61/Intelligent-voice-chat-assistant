@@ -6,8 +6,9 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import host.hunger.vocalchat.domain.enums.DialogueRoles;
@@ -15,6 +16,8 @@ import host.hunger.vocalchat.domain.dto.request.QuestionRequest;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
 import host.hunger.vocalchat.domain.service.QuestionAnsweringService;
+import host.hunger.vocalchat.infrastructure.exception.BaseException;
+import host.hunger.vocalchat.shared.enums.ErrorEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -30,17 +33,16 @@ import java.util.function.Consumer;
 @Slf4j
 public class OllamaQuestionAnsweringService implements QuestionAnsweringService {
 
-    private final ChatLanguageModel chatLanguageModel;
-    private final StreamingChatLanguageModel streamingChatLanguageModel;
-//    private final ChatMemory chatMemory;
+    private final OllamaChatModel chatModel;
+    private final OllamaStreamingChatModel streamingChatModel;
 
     private final ExecutorService virtualExecutor;
 
-    public OllamaQuestionAnsweringService(ChatLanguageModel chatLanguageModel,
-                                          StreamingChatLanguageModel streamingChatLanguageModel,
+    public OllamaQuestionAnsweringService(@Qualifier("ollamaChatModel") OllamaChatModel ollamaChatModel,
+                                          @Qualifier("ollamaStreamingChatModel") OllamaStreamingChatModel ollamaStreamingChatModel,
                                           @Qualifier("virtualThreadExecutor") ExecutorService virtualExecutor) {
-        this.chatLanguageModel = chatLanguageModel;
-        this.streamingChatLanguageModel = streamingChatLanguageModel;
+        this.chatModel = ollamaChatModel;
+        this.streamingChatModel = ollamaStreamingChatModel;
         this.virtualExecutor = virtualExecutor;
     }
 
@@ -49,13 +51,13 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
         Instant start = Instant.now();
         log.info("Start answerQuestion for assistant={}, messagesCount={}", aiAssistant.getId(), request.getMessages() == null ? 0 : request.getMessages().size());
 
-        ConversationalChain chain = initializeAIModelWithMemory(request.getMessages(), aiAssistant, chatLanguageModel);
+        ConversationalChain chain = initializeAIModelWithMemory(request.getMessages(), aiAssistant, chatModel);
 
         Instant beforeCall = Instant.now();
         String userInput = extractLatestUserMessage(request);
         if (userInput == null || userInput.isBlank()) {
             log.error("User input is empty when calling LLM");
-            throw new IllegalArgumentException("User input cannot be empty");
+            throw new BaseException(ErrorEnum.USER_INPUT_EMPTY);
         }
         String aiMessage = chain.execute(userInput);// pass actual user message
 
@@ -113,7 +115,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
 
         var ai = AiServices.builder(AIAssistantStream.class)
                 .chatMemory(chatMemory)
-                .streamingChatLanguageModel(streamingChatLanguageModel)
+                .streamingChatModel(streamingChatModel)
                 .build();
 
         String userInput = extractLatestUserMessage(request);
@@ -179,7 +181,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
     }
     //todo
 
-    private ConversationalChain initializeAIModelWithMemory(List<DialogueContext> dialogueContexts, AIAssistant aiAssistant, ChatLanguageModel chatLanguageModel) {
+    private ConversationalChain initializeAIModelWithMemory(List<DialogueContext> dialogueContexts, AIAssistant aiAssistant, ChatModel chatLanguageModel) {
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(100);
         // add system
         String system = aiAssistant.getDescription() == null ? "" : aiAssistant.getDescription().getDescription();
@@ -200,7 +202,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
         }
         return ConversationalChain.builder()
                 .chatMemory(chatMemory)
-                .chatLanguageModel(chatLanguageModel)
+                .chatModel(chatModel)
                 .build();
     }
 

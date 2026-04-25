@@ -11,7 +11,7 @@ public class UserEmail extends ValueObject {
             throw new IllegalArgumentException("Invalid email");
         }
         this.email = email.trim().toLowerCase();
-    }
+    }//todo 可以自建异常类
 
     private boolean isValidEmail(String email){
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" +

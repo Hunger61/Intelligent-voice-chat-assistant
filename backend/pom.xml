@@ -18,7 +18,8 @@
         <java.version>21</java.version>
         <lombok.version>1.18.32</lombok.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
-        <langchain4j.version>1.0.0-beta3</langchain4j.version>
+        <langchain4j.version>1.13.0</langchain4j.version>
+        <langchain4j.community.version>1.13.0-beta23</langchain4j.community.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <jwt.version>3.11.0</jwt.version>
         <minio.version>8.5.17</minio.version>
@@ -39,12 +40,17 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
-            <version>1.0.0-beta3</version>
+            <version>${langchain4j.version}</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-easy-rag</artifactId>
-            <version>1.0.0-beta3</version>
+            <version>${langchain4j.community.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
+            <version>${langchain4j.community.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -99,6 +105,7 @@
             <artifactId>java-jwt</artifactId>
             <version>${jwt.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>

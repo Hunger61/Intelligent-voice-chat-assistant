@@ -2,6 +2,7 @@ package host.hunger.vocalchat.domain.model.dialogue;
 
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
 import host.hunger.vocalchat.domain.model.shared.AggregateRoot;
+import host.hunger.vocalchat.domain.model.shared.Identity;
 import host.hunger.vocalchat.domain.event.MessageAddedEvent;
 import lombok.Getter;
 
@@ -15,6 +16,7 @@ public class Dialogue extends AggregateRoot<DialogueId> {
     private final ArrayList<DialogueContext> dialogueContexts = new ArrayList<>();
 
     public Dialogue(AIAssistantId aiAssistantId) {
+        super(Identity.generate(DialogueId.class));
         this.aiAssistantId = aiAssistantId;
     }
 

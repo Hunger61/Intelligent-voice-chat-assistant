@@ -1,6 +1,5 @@
 package host.hunger.vocalchat.api.rest.controller;
 
-import ai.djl.util.Pair;
 import host.hunger.vocalchat.api.rest.annotation.AutoResult;
 import host.hunger.vocalchat.api.rest.annotation.OperateLog;
 import host.hunger.vocalchat.api.rest.dto.AIAssistantConfigDTO;
@@ -11,6 +10,8 @@ import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.shared.context.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -49,7 +50,6 @@ public class AIAssistantController {
     @PostMapping(value = "/streamGenerateReply", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @OperateLog("流式生成回复")
     public SseEmitter streamGenerateReply(@RequestBody QuestionDTO questionDTO) {
-        log.info("[SSE] POST /streamGenerateReply received: aiAssistantId={}, questionLength={}", questionDTO.getAiAssistantId(), questionDTO.getQuestion() == null ? 0 : questionDTO.getQuestion().length());
         return startStreaming(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
     }
 
@@ -195,6 +195,11 @@ public class AIAssistantController {
 
     // 统一 sendSafe：可选接收 open 标志，避免重复实现
     private void sendSafe(SseEmitter emitter, SseEmitter.SseEventBuilder event, AtomicBoolean... openRefs) {
+        // 检查 open 标志
+        if (openRefs != null && openRefs.length > 0 && openRefs[0] != null && !openRefs[0].get()) {
+            return;
+        }
+        
         try {
             emitter.send(event);
         } catch (IOException e) {
@@ -204,6 +209,12 @@ public class AIAssistantController {
                 emitter.complete();
             } catch (Exception ignore) {
             }
+            if (openRefs != null && openRefs.length > 0 && openRefs[0] != null) {
+                openRefs[0].set(false);
+            }
+        } catch (IllegalStateException e) {
+            // 处理 emitter 已经完成的情况
+            log.debug("SSE emitter already completed", e);
             if (openRefs != null && openRefs.length > 0 && openRefs[0] != null) {
                 openRefs[0].set(false);
             }

@@ -2,7 +2,7 @@ package host.hunger.vocalchat.infrastructure.config;
 
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,7 @@ public class OllamaLlmConfig {
     private static final Integer MAX_MESSAGES = 20;
 
     @Bean
-    public ChatLanguageModel chatLanguageModel() {
+    public OllamaChatModel ollamaChatModel() {
         return OllamaChatModel.builder()
                 .baseUrl(baseUrl)
                 .modelName(modelName)

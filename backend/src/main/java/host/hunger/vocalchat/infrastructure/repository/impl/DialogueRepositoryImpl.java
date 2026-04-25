@@ -14,12 +14,14 @@ import host.hunger.vocalchat.domain.repository.DialogueRepository;
 import host.hunger.vocalchat.infrastructure.repository.persistence.entity.DialogueDO;
 import host.hunger.vocalchat.infrastructure.repository.persistence.mapper.DialogueMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class DialogueRepositoryImpl implements DialogueRepository {
 
     private final DialogueMapper dialogueMapper;
@@ -43,7 +45,8 @@ public class DialogueRepositoryImpl implements DialogueRepository {
 
     @Override
     public Optional<Dialogue> findByAIAssistantId(AIAssistantId aiAssistantId) {
-        DialogueDO dialogueDO = dialogueMapper.selectOne(new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getAiAssistantId, aiAssistantId.toString()));
+        DialogueDO dialogueDO = dialogueMapper.selectOne(
+                new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getAiAssistantId, aiAssistantId.toString()));
         return Optional.ofNullable(toDomain(dialogueDO));
     }
 
@@ -55,7 +58,7 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     @Override
     public void save(Dialogue entity) {
         DialogueDO dialogueDO = toDataObject(entity);
-        if (entity.getId() == null) {
+        if (dialogueMapper.selectById(dialogueDO.getId()) == null) {
             dialogueMapper.insert(dialogueDO);
         } else {
             dialogueMapper.updateById(dialogueDO);
@@ -64,12 +67,13 @@ public class DialogueRepositoryImpl implements DialogueRepository {
 
     @Override
     public boolean exists(DialogueId dialogueId) {
-        Long count = dialogueMapper.selectCount(new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getId, dialogueId.toString()));
+        Long count = dialogueMapper
+                .selectCount(new LambdaQueryWrapper<DialogueDO>().eq(DialogueDO::getId, dialogueId.toString()));
         return count != null && count > 0L;
     }
 
     private Dialogue toDomain(DialogueDO d) {
-        if (d == null){
+        if (d == null) {
             return null;
         }
         AIAssistantId aiId = new AIAssistantId(d.getAiAssistantId());
@@ -96,7 +100,7 @@ public class DialogueRepositoryImpl implements DialogueRepository {
     }
 
     private DialogueDO toDataObject(Dialogue dialogue) {
-        if (dialogue == null){
+        if (dialogue == null) {
             return null;
         }
         DialogueDO d = new DialogueDO();
@@ -116,6 +120,5 @@ public class DialogueRepositoryImpl implements DialogueRepository {
         }
         return d;
     }
-
 
 }

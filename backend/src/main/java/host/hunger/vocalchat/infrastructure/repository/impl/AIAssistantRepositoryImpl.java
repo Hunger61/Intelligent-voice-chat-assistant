@@ -57,13 +57,17 @@ public class AIAssistantRepositoryImpl implements AIAssistantRepository {
         if (assistantDO== null){
             return null;
         }
+        KnowledgeBaseId knowledgeBaseId = null;
+        if (assistantDO.getKnowledgeBaseId() != null && !assistantDO.getKnowledgeBaseId().trim().isEmpty()) {
+            knowledgeBaseId = new KnowledgeBaseId(assistantDO.getKnowledgeBaseId());
+        }// todo 改成域内校验合法性
         return new AIAssistant(
                 new AIAssistantId(assistantDO.getId()),
                 new UserId(assistantDO.getUserId()),
                 new AIAssistantName(assistantDO.getName()),
                 new AIAssistantDescription(assistantDO.getDescription()),
                 new AIAssistantCharacter(assistantDO.getAssistantCharacter()),
-                new KnowledgeBaseId(assistantDO.getKnowledgeBaseId())
+                knowledgeBaseId
         );
     }
 

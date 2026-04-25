@@ -2,17 +2,17 @@ spring:
   application:
     name: vocalchat
   datasource:
-    url: jdbc:mysql://localhost:3306/vocalchat?useSSL=false&serverTimezone=UTC
-    username: Hunger
-    password:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   mail:
-    host: smtp.qq.com
-    port: 587
-    username: 3287426755@qq.com
-    password: vothdaqxyvfhdbeg
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     default-encoding: UTF-8
     properties:
       mail:
@@ -28,21 +28,26 @@ spring:
       enabled: true
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   minio:
-    endpoint: http://127.0.0.1:9005   # MinIO API端口
-    access-key: minioadmin
-    secret-key: minioadmin
+    endpoint: ${MINIO_ENDPOINT}   # MinIO API端口
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
 
 # Ollama configuration (values can be provided via environment variables OLLAMA_BASE_URL and OLLAMA_MODEL_NAME)
 ollama:
-  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-  model-name: ${OLLAMA_MODEL_NAME:qwen3:4b}
+  base-url: ${OLLAMA_BASE_URL}
+  model-name: ${OLLAMA_MODEL_NAME}
+
+qwen:
+  model-name: ${QWEN_MODEL_NAME}
+  api-key: ${QWEN_API_KEY}
+  api-multiple-url: ${QWEN_API_MULTIPLE_URL}
 
 jwt:
-  secret: jwt
-  expiration: 86400
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
 
 logging:
   level:

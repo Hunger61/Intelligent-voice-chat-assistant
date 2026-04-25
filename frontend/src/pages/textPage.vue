@@ -519,7 +519,7 @@ const scrollToBottom = () => {
 
 // 正确的监听方式
 watch(
-  () => store.getters.getTextMessageContent.deepcontent,
+  () => store.getters.getTextMessageContent?.deepcontent,
   (newVal) => {
     if (newVal && newVal.trim() !== '') {
       scrollToBottom();
@@ -634,10 +634,10 @@ const onIframeLoaded = () => {
 //页面加载时
 onMounted(() => {
   //
-  assistant.value = store.getters.getAssistantById(assistantId.value)
-  localCharacter.value = assistant.value.character
-  localName.value = assistant.value.name
-  localKonwId.value = assistant.value.knowledge_base_id
+  assistant.value = store.getters.getAssistantById(assistantId.value) || {}
+  localCharacter.value = assistant.value.character || ''
+  localName.value = assistant.value.name || ''
+  localKonwId.value = assistant.value.knowledge_base_id || ''
   updateCharacterCount();
   setupEventListeners()
   mieAnimation.init(200, 200);
@@ -647,6 +647,80 @@ onMounted(() => {
     // 更简单的方式：如果容器ID唯一，可直接用ID选择器
     // cleanupPhysics = initPhysics('#physics-page');
   }
+  
+  // 加载聊天记录
+  if (assistantId.value && assistantId.value !== 0) {
+    AssistantService.getConversationLog(assistantId.value)
+      .then(response => {
+        
+        // 处理后端返回的格式
+        let logs = [];
+        if (response && response.success && response.data) {
+          logs = response.data;
+        } else if (response && Array.isArray(response)) {
+          // 兼容直接返回数组的情况
+          logs = response;
+        }
+        
+        
+          // 清空现有消息
+          store.commit('clearRTMbyId', assistantId.value);
+          
+          // 添加历史聊天记录
+          logs.forEach((log, index) => {
+            
+            // 适配多种返回格式
+            let role, content;
+            if (log.left !== undefined && log.right !== undefined) {
+              // 后端返回的是 Pair 对象，使用 left 和 right 字段
+              role = log.left;
+              content = log.right;
+            } else if (Array.isArray(log)) {
+              // 兼容数组格式
+              role = log[0];
+              content = log[1];
+            } else if (typeof log === 'object') {
+              // 处理键值对格式的对象
+              const entries = Object.entries(log);
+              if (entries.length > 0) {
+                [role, content] = entries[0];
+              } else {
+                // 处理其他对象格式
+                role = log.role || log.Role || 'USER';
+                content = log.content || log.Content || '';
+
+              }
+            } else if (typeof log === 'string' && log.includes(',')) {
+              // 处理字符串格式的元组
+              const parts = log.substring(1, log.length - 1).split(',');
+              role = parts[0].trim();
+              content = parts[1].trim();
+            } else {
+              // 默认值
+              role = 'USER';
+              content = '';
+            }
+            
+            const message = {
+              type: role === 'USER' ? 'user' : 'ai',
+              content: content || '',
+              deepcontent: '',
+              time: new Date().toLocaleString(),
+              elapsedTime: 0
+            };
+            store.commit('addRTMbyId', {
+              message: message,
+              id: assistantId.value
+            });
+          });
+      })
+      .catch(error => {
+        console.error('获取聊天记录失败:', error);
+      });
+  } else {
+    console.log('assistantId为空或0，跳过获取聊天记录');
+  }
+  
   emit('page-loaded')
 })
 
@@ -856,10 +930,10 @@ const triggerShake = (message) => {
   // 启动震动
   isShaking.value = true;
   // 1秒后停止震动
-  shakeTimeout.value = setTimeout(() => {
+shakeTimeout = setTimeout(() => {
     isShaking.value = false;
     errorMessage.value = '';
-    localCharacter.value = assistant.value.character
+    localCharacter.value = assistant.value.character || ''
   }, 1000);
 };
 const isOnline = ref(false)

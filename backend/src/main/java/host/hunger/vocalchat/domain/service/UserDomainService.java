@@ -5,5 +5,4 @@ import host.hunger.vocalchat.domain.model.user.UserEmail;
 
 public interface UserDomainService {
     User authenticate(UserEmail email, String password);
-    // void addDefaultAIAssistants(UserId userId);
 }
