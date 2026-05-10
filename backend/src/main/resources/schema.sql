@@ -1,6 +1,7 @@
 -- 删除已存在的表
 DROP TABLE IF EXISTS `dialogue`;
 DROP TABLE IF EXISTS `ai_assistant`;
+DROP TABLE IF EXISTS `knowledge_base_file`;
 DROP TABLE IF EXISTS `knowledge_base`;
 DROP TABLE IF EXISTS `user`;
 
@@ -30,6 +31,22 @@ CREATE TABLE `knowledge_base` (
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
+
+-- 知识库文件表（无外键约束）
+CREATE TABLE `knowledge_base_file` (
+    `id` VARCHAR(36) NOT NULL COMMENT '主键，UUID',
+    `knowledge_base_id` VARCHAR(36) NOT NULL COMMENT '所属知识库ID',
+    `file_name` VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    `file_type` VARCHAR(50) NOT NULL COMMENT '文件类型（扩展名）',
+    `file_size` BIGINT NOT NULL DEFAULT 0 COMMENT '文件大小（字节）',
+    `storage_key` VARCHAR(512) NOT NULL COMMENT '对象存储Key',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'UPLOADING' COMMENT '状态：UPLOADING/UPLOADED/PROCESSING/COMPLETED/FAILED',
+    `chunk_count` INT NOT NULL DEFAULT 0 COMMENT '切片数量',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_knowledge_base_id` (`knowledge_base_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库文件表';
 
 -- AI 助手表（无外键约束）
 CREATE TABLE `ai_assistant` (

@@ -52,50 +52,117 @@ class KnowledgeService {
   }
 
   /**
-   * 获取知识库内文件列表（后端待实现）
-   * @param {string} knowledgeBaseId
+   * 上传文件到知识库
+   * @param {string} knowledgeBaseId - 知识库ID
+   * @param {File} file - 文件对象
    */
-  static async getKnowledgeBaseFiles(knowledgeBaseId) {
-    return this._unsupported();
+  static async uploadFile(knowledgeBaseId, file) {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`/api/knowledge-base/${knowledgeBaseId}/file`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Token: token } : {})
+      },
+      body: formData
+    });
+    return this._handleResponse(response);
   }
 
   /**
-   * 上传文件到知识库（后端待实现）
+   * 获取知识库内文件列表
+   * @param {string} knowledgeBaseId
    */
-  static async uploadFile() { return this._unsupported(); }
+  static async getKnowledgeBaseFiles(knowledgeBaseId) {
+    const token = getAuthToken();
+    const response = await fetch(`/api/knowledge-base/${knowledgeBaseId}/file`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
+  }
 
   /**
-   * 获取文件解析状态（后端待实现）
+   * 删除知识库内文件
+   * @param {string} knowledgeBaseId
+   * @param {string} fileId
    */
-  static async getFileStatus() { return this._unsupported(); }
+  static async deleteFile(knowledgeBaseId, fileId) {
+    const token = getAuthToken();
+    const response = await fetch(`/api/knowledge-base/${knowledgeBaseId}/file/${fileId}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
+  }
 
   /**
-   * 删除知识库内文件（后端待实现）
+   * 查询文件处理状态
+   * @param {string} knowledgeBaseId
+   * @param {string} fileId
    */
-  static async deleteFile() { return this._unsupported(); }
+  static async getFileStatus(knowledgeBaseId, fileId) {
+    const token = getAuthToken();
+    const response = await fetch(`/api/knowledge-base/${knowledgeBaseId}/file/${fileId}/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
+  }
 
   /**
-   * 批量添加文件到知识库（后端待实现）
+   * 批量添加文件到知识库（合并到 uploadFile）
+   * @param {string} knowledgeBaseId
+   * @param {File[]} files
    */
-  static async addFilesToKnowledgeBase() { return this._unsupported(); }
+  static async addFilesToKnowledgeBase(knowledgeBaseId, files) {
+    const results = [];
+    for (const file of files) {
+      results.push(await this.uploadFile(knowledgeBaseId, file));
+    }
+    return { success: true, data: results };
+  }
 
   /**
-   * 批量移除文件（后端待实现）
+   * 批量移除文件
+   * @param {string} knowledgeBaseId
+   * @param {string[]} fileIds
    */
-  static async removeFilesFromKnowledgeBase() { return this._unsupported(); }
+  static async removeFilesFromKnowledgeBase(knowledgeBaseId, fileIds) {
+    const results = [];
+    for (const fileId of fileIds) {
+      results.push(await this.deleteFile(knowledgeBaseId, fileId));
+    }
+    return { success: true, data: results };
+  }
 
   /**
-   * 查询文件处理任务状态（后端待实现）
+   * 查询文件处理任务状态（同 getFileStatus）
+   * @param {string} knowledgeBaseId
+   * @param {string} fileId
    */
-  static async getKnowledgeBaseJobStatus() { return this._unsupported(); }
+  static async getKnowledgeBaseJobStatus(knowledgeBaseId, fileId) {
+    return this.getFileStatus(knowledgeBaseId, fileId);
+  }
 
   /**
    * @deprecated 使用 getKnowledgeBasesByUserId() 代替
    */
-  static async getFilesByUserId() { return this._unsupported(); }
+  static async getFilesByUserId() {
+    return this._unsupported();
+  }
 
   static _unsupported() {
-    throw new Error('知识库文件管理接口在当前后端版本未实现');
+    throw new Error('该方法已弃用');
   }
 
   static async _handleResponse(response) {

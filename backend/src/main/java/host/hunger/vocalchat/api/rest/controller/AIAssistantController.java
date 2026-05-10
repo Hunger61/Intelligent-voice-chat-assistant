@@ -3,6 +3,7 @@ package host.hunger.vocalchat.api.rest.controller;
 import host.hunger.vocalchat.api.rest.annotation.AutoResult;
 import host.hunger.vocalchat.api.rest.annotation.OperateLog;
 import host.hunger.vocalchat.api.rest.dto.AIAssistantConfigDTO;
+import host.hunger.vocalchat.api.rest.dto.AddMessagesDTO;
 import host.hunger.vocalchat.api.rest.dto.QuestionDTO;
 import host.hunger.vocalchat.api.rest.vo.AIAssistantVO;
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
@@ -137,6 +138,23 @@ public class AIAssistantController {
     @OperateLog("查询会话记录")
     public List<Pair<String, String>> getConversationLog(@PathVariable String aiAssistantId) {
         return aiAssistantApplicationService.getConversationLog(aiAssistantId);
+    }
+
+    @AutoResult
+    @PostMapping("/{aiAssistantId}/conversation")
+    @OperateLog("追加会话消息")
+    public void addMessages(@PathVariable String aiAssistantId, @RequestBody AddMessagesDTO dto) {
+        List<Pair<String, String>> messages = dto.getMessages().stream()
+                .map(m -> Pair.of(m.get(0), m.get(1)))
+                .toList();
+        aiAssistantApplicationService.addMessagesToConversation(aiAssistantId, messages);
+    }
+
+    @AutoResult
+    @DeleteMapping("/{aiAssistantId}/conversation-log")
+    @OperateLog("重置会话历史")
+    public void resetConversation(@PathVariable String aiAssistantId) {
+        aiAssistantApplicationService.resetConversation(aiAssistantId);
     }
 
     /**

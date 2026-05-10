@@ -1,21 +1,34 @@
 import { getAuthToken } from './auth.js';
 
 class MessageService {
-   /**
+  /**
    * 批量添加聊天历史记录
-   * @param {Array} messages - 消息数组
-   * @returns {Promise<Array>} - 新增的消息记录
+   * @param {string} assistantId - 助手ID
+   * @param {Array<Array<string>>} messages - 消息数组，每条为 [role, content]
    */
-  static async addMessages(messages) {
-    throw new Error('该接口后端未实现：add_messages');
+  static async addMessages(assistantId, messages) {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/aiAssistant/${assistantId}/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Token: token } : {})
+        },
+        body: JSON.stringify({ messages })
+      });
+      return this._handleResponse(response);
+    } catch (error) {
+      console.error('Error adding messages:', error);
+      throw error;
+    }
   }
 
   /**
    * 分页查询聊天记录（按ID降序，最新在前）
-   * @param {number} assistantId - 助手ID
+   * @param {string} assistantId - 助手ID
    * @param {number} size - 每页大小
    * @param {number} pageNum - 页码（从1开始）
-   * @returns {Promise<Array>} - 分页消息数据
    */
   static async findMessagesByPage(assistantId, size, pageNum) {
     try {
@@ -40,19 +53,25 @@ class MessageService {
   }
 
   /**
-   * 重置助手历史对话（会生成新ID）
-   * @param {number} assistantId - 要重置的助手ID
-   * @returns {Promise<Object>} - 新创建的助手数据
+   * 重置助手历史对话（清空对话，生成新对话ID）
+   * @param {string} assistantId - 要重置的助手ID
    */
   static async resetHistory(assistantId) {
-    throw new Error('该接口后端未实现：reset_history');
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/aiAssistant/${assistantId}/conversation-log`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Token: token } : {})
+        }
+      });
+      return this._handleResponse(response);
+    } catch (error) {
+      console.error('Error resetting history:', error);
+      throw error;
+    }
   }
 
-  /**
-   * 处理响应
-   * @param {Response} response 
-   * @returns 
-   */
   static async _handleResponse(response) {
     if (!response.ok) {
       const errorText = await response.text();

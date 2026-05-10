@@ -16,7 +16,6 @@
   - [5.2 AI 助手模块](#52-ai-助手模块-api-aiassistant)
   - [5.3 知识库模块](#53-知识库模块-api-knowledge-base)
   - [5.4 推荐新增接口](#54-推荐新增接口)
-- [6. SSE 流式协议](#6-sse-流式协议)
 - [7. WebSocket 协议](#7-websocket-协议)
 - [8. 前端对接现状](#8-前端对接现状)
 
@@ -380,6 +379,47 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
+#### `POST /{aiAssistantId}/conversation` — 追加会话消息
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `aiAssistantId` | `String` | 助手 ID |
+
+请求体：
+
+```json
+{
+  "messages": [
+    ["USER", "用户消息内容"],
+    ["ASSISTANT", "助手回复内容"]
+  ]
+}
+```
+
+`messages` 为二维数组，每个元素 `[角色, 内容]`，角色取值 `USER` / `ASSISTANT`。
+
+---
+
+#### `DELETE /{aiAssistantId}/conversation-log` — 重置会话历史
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `aiAssistantId` | `String` | 助手 ID |
+
+清空当前对话并自动创建新的空对话，对用户感知为"开始新对话"。
+
+---
+
 ### 5.3 知识库模块 `/api/knowledge-base`
 
 #### `POST /api/knowledge-base` — 创建知识库
@@ -470,62 +510,77 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
+#### 文件管理 `/api/knowledge-base/{id}/file`
+
+##### `POST /{id}/file` — 上传文件
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<KnowledgeBaseFileVO>`
+- **Content-Type**：`multipart/form-data`
+
+表单字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `file` | `File` | 上传文件（支持 PDF / TXT / MD / DOCX 等） |
+
+成功响应：
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string // 文件 UUID",
+    "knowledgeBaseId": "string",
+    "fileName": "doc.pdf",
+    "fileType": "pdf",
+    "fileSize": 102400,
+    "status": "COMPLETED",
+    "chunkCount": 0,
+    "createdAt": "2026-05-10T12:00:00",
+    "updatedAt": "2026-05-10T12:00:00"
+  }
+}
+```
+
+`status` 取值：`UPLOADING` → `UPLOADED` / `COMPLETED`（当 `ObjectStorageService` 不可用时回退为 `UPLOADED`，元数据正常入库）。
+
+---
+
+##### `GET /{id}/file` — 获取文件列表
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<List<KnowledgeBaseFileVO>>`
+
+---
+
+##### `DELETE /{id}/file/{fileId}` — 删除文件
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+---
+
+##### `GET /{id}/file/{fileId}/status` — 查询文件状态
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<KnowledgeBaseFileVO>`
+
+返回文件当前状态（`UPLOADING` / `UPLOADED` / `COMPLETED` / `FAILED`）及切片数量。
+
+---
+
 ### 5.4 推荐新增接口
 
 以下接口基于三个维度综合建议：
 
 1. **前端 stub 分析**：`knowledge.js` 全部 11 个方法、`message.js` 中 2 个方法、`assistant.js` 中 2 个方法均抛出 "未实现" 错误
 2. **领域模型储备**：`KnowledgeBase`、`SpeechProcessor`、`Session` 等聚合根已建模但无 API 暴露
-3. **功能闭环需要**：用户自助管理（改密/改资料）、会话重置、助手详情查询等
+3. **功能闭环需要**：用户自助管理（改密/改资料）、语音功能扩展等
 
 ---
 
-#### 5.4.1 知识库文件管理（建议 `/api/knowledge-base/{id}/file`）
-
-**知识库 CRUD 已实现**，见 [5.3 知识库模块](#53-知识库模块-api-knowledge-base)。以下为尚未实现的文件管理功能：
-
-| 方法 | 路径 | 说明 | 优先级 |
-|------|------|------|--------|
-| `POST` | `/api/knowledge-base/{id}/file` | 上传文件（支持 PDF / TXT / MD） | **高** |
-| `GET` | `/api/knowledge-base/{id}/file` | 获取知识库内文件列表 | **高** |
-| `DELETE` | `/api/knowledge-base/{id}/file/{fileId}` | 删除文件 | 中 |
-| `GET` | `/api/knowledge-base/{id}/file/{fileId}/status` | 查询文件解析/向量化进度 | 中 |
-
-上传为 `multipart/form-data`，字段名 `file`。文件上传后异步进行文本提取、切片与向量化；通过 status 接口轮询进度，返回格式：
-
-```json
-{
-  "status": "PROCESSING",
-  "progress": 45,
-  "totalChunks": 0,
-  "completedChunks": 0
-}
-```
-
-可复用的基础设施：`ObjectStorageService`（MinIO 实例已运行，支持分片上传、预签名 URL）。
-
----
-
-#### 5.4.2 对话管理扩展（扩展 `/api/aiAssistant`）
-
-| 方法 | 路径 | 说明 | 优先级 |
-|------|------|------|--------|
-| `GET` | `/api/aiAssistant/{id}` | 获取单个助手详情 | **高** |
-| `DELETE` | `/api/aiAssistant/{id}/conversation-log` | 重置对话（清空上下文，生成新 Dialogue） | **高** |
-| `GET` | `/api/aiAssistant/{id}/conversation-log/page` | 分页获取会话记录 | 中 |
-
-分页参数：
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `pageNum` | `int` | `1` | 页码（从 1 开始） |
-| `pageSize` | `int` | `20` | 每页条数 |
-
-> `DELETE .../conversation-log` 对应前端 `resetHistory()`，清空后后端自动创建空对话，用户感知为"新对话"。
-
----
-
-#### 5.4.3 语音模块（建议 `/api/speech`）
+#### 5.4.1 语音模块（建议 `/api/speech`）
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -549,7 +604,16 @@ TTS 响应：`audio/wav` 二进制流。
 
 ---
 
-#### 5.4.4 用户自助管理（扩展 `/api/public/user`）
+#### 5.4.2 助手管理扩展
+
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `GET` | `/api/aiAssistant/{id}` | 获取单个助手详情 | **高** |
+| `GET` | `/api/aiAssistant/{id}/conversation-log/page` | 分页获取会话记录 | 中 |
+
+---
+
+#### 5.4.3 用户自助管理（扩展 `/api/public/user`）
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -566,17 +630,9 @@ TTS 响应：`audio/wav` 二进制流。
 }
 ```
 
-修改昵称请求体：
-
-```json
-{
-  "nickName": "string"
-}
-```
-
 ---
 
-#### 5.4.5 系统
+#### 5.4.4 系统
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -735,19 +791,18 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 | `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
 | `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
 | `knowledge.js` | `deleteKnowledgeBase()` | `DELETE /api/knowledge-base/{id}` | 正常 |
+| `assistant.js` | `modifyCommon()` | `POST /api/aiAssistant/modifyAssistantConfig` | 正常 |
+| `assistant.js` | `delete()` | `DELETE /api/aiAssistant/deleteAssistant` | 正常 |
+| `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
+| `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
+| `knowledge.js` | `deleteKnowledgeBase()` | `DELETE /api/knowledge-base/{id}` | 正常 |
+| `knowledge.js` | `uploadFile()` | `POST /api/knowledge-base/{id}/file` | 正常 |
+| `knowledge.js` | `getKnowledgeBaseFiles()` | `GET /api/knowledge-base/{id}/file` | 正常 |
+| `knowledge.js` | `deleteFile()` | `DELETE /api/knowledge-base/{id}/file/{fileId}` | 正常 |
+| `knowledge.js` | `getFileStatus()` | `GET /api/knowledge-base/{id}/file/{fileId}/status` | 正常 |
+| `knowledge.js` | `addFilesToKnowledgeBase()` | `POST /api/knowledge-base/{id}/file`（批量） | 正常（复用 uploadFile） |
+| `knowledge.js` | `removeFilesFromKnowledgeBase()` | `DELETE /api/knowledge-base/{id}/file/{fileId}`（批量） | 正常（复用 deleteFile） |
+| `knowledge.js` | `getKnowledgeBaseJobStatus()` | `GET /api/knowledge-base/{id}/file/{fileId}/status` | 正常（复用 getFileStatus） |
 | `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
-
-### 前端 Stub（后端未实现）
-
-| 前端文件 | 方法 | 错误信息 | 建议后端接口 |
-|----------|------|----------|-------------|
-| `message.js` | `addMessages()` | "该接口后端未实现" | `POST /api/aiAssistant/{id}/conversation` |
-| `message.js` | `resetHistory()` | "该接口后端未实现" | `DELETE /api/aiAssistant/{id}/conversation-log` |
-| `knowledge.js` | `uploadFile()` | "知识库文件管理接口在当前后端版本未实现" | `POST /api/knowledge-base/{id}/file` |
-| `knowledge.js` | `getKnowledgeBaseFiles()` | 同上 | `GET /api/knowledge-base/{id}/file` |
-| `knowledge.js` | `addFilesToKnowledgeBase()` | 同上 | `PATCH /api/knowledge-base/{id}/file` |
-| `knowledge.js` | `removeFilesFromKnowledgeBase()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
-| `knowledge.js` | `getKnowledgeBaseJobStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
-| `knowledge.js` | `getFileStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
-| `knowledge.js` | `deleteFile()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
-| `knowledge.js` | `getFilesByUserId()` | 同上 | 已弃用，使用 `getKnowledgeBasesByUserId()` |
+| `message.js` | `addMessages()` | `POST /api/aiAssistant/{id}/conversation` | 正常 |
+| `message.js` | `resetHistory()` | `DELETE /api/aiAssistant/{id}/conversation-log` | 正常 |
