@@ -1,46 +1,57 @@
 package host.hunger.vocalchat.domain.model.knowledgeabase;
 
 import host.hunger.vocalchat.domain.model.shared.AggregateRoot;
+import host.hunger.vocalchat.domain.model.shared.Identity;
 import host.hunger.vocalchat.domain.model.user.UserId;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@AllArgsConstructor
+@Getter
 @Setter
-@SuppressWarnings("unused")
 public class KnowledgeBase extends AggregateRoot<KnowledgeBaseId> {
-    private final KnowledgeBaseId knowledgeBaseId;
-    private final KnowledgeBaseName knowledgeBaseName;
-    private final KnowledgeBaseDescription knowledgeBaseDescription;
+
+    private KnowledgeBaseName name;
+    private KnowledgeBaseDescription description;
     private UserId userId;
-
-
-    /**
-     * 轻量状态字段，建议后续枚举化为 ACTIVE / ARCHIVED / DISABLED 等。
-     */
-    private String status;//todo
-
-    /**
-     * 当前知识库下的文档数量，用于列表展示和配额控制。
-     */
+    private String status;
     private Integer documentCount;
-
-    /**
-     * 当前知识库下的切片数量，用于检索和统计展示。
-     */
     private Integer chunkCount;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public KnowledgeBase(KnowledgeBaseId knowledgeBaseId, UserId userId, KnowledgeBaseName knowledgeBaseName, String description, KnowledgeBaseId knowledgeBaseId1, KnowledgeBaseName knowledgeBaseIdName, KnowledgeBaseDescription knowledgeBaseDescription) {
-        super(knowledgeBaseId);
+    public KnowledgeBase(UserId userId, KnowledgeBaseName name, KnowledgeBaseDescription description) {
+        super(Identity.generate(KnowledgeBaseId.class));
         this.userId = userId;
-        this.knowledgeBaseId = knowledgeBaseId1;
-        this.knowledgeBaseName = knowledgeBaseName;
-        this.knowledgeBaseDescription = knowledgeBaseDescription;
+        this.name = name;
+        this.description = description;
+        this.status = "ACTIVE";
+        this.documentCount = 0;
+        this.chunkCount = 0;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public KnowledgeBase(KnowledgeBaseId id, UserId userId, KnowledgeBaseName name,
+                         KnowledgeBaseDescription description, String status,
+                         Integer documentCount, Integer chunkCount,
+                         LocalDateTime createdAt, LocalDateTime updatedAt) {
+        super(id);
+        this.userId = userId;
+        this.name = name;
+        this.description = description;
+        this.status = status;
+        this.documentCount = documentCount;
+        this.chunkCount = chunkCount;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public void modifyConfig(KnowledgeBaseName name, KnowledgeBaseDescription description) {
+        this.name = name;
+        this.description = description;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public boolean belongsTo(UserId userId) {

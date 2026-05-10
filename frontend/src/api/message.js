@@ -20,7 +20,7 @@ class MessageService {
   static async findMessagesByPage(assistantId, size, pageNum) {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/public/aiAssistant/${assistantId}/conversation-log`, {
+      const response = await fetch(`/api/aiAssistant/${assistantId}/conversation-log`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

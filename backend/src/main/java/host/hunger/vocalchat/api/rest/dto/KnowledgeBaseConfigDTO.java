@@ -1,0 +1,11 @@
+package host.hunger.vocalchat.api.rest.dto;
+
+import lombok.Data;
+
+import java.io.Serializable;
+
+@Data
+public class KnowledgeBaseConfigDTO implements Serializable {
+    private String name;
+    private String description;
+}

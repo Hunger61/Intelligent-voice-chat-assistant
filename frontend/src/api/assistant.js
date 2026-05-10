@@ -62,20 +62,61 @@ class AssistantService {
 
   /**
    * 修改助手名称、描述属性
-   * @param {number} id
-   * @param {string} name  
+   * @param {string} id - 助手ID
+   * @param {string} name
    * @param {string} description
+   * @param {string} character
+   * @param {string} knowledge_base_id
    */
   static async modifyCommon(id, name, description, character, knowledge_base_id) {
-    throw new Error('该接口后端未实现：modify assistant');
+    try {
+      const token = getAuthToken();
+      const params = new URLSearchParams({ aiAssistantId: id });
+      const response = await fetch(`/api/aiAssistant/modifyAssistantConfig?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Token: token } : {})
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          character: character || '',
+          knowledgeBaseId: knowledge_base_id || ''
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error modifying assistant:', error);
+      throw error;
+    }
   }
 
   /**
    * 删除助手
-   * @param {number} id 
+   * @param {string} id - 助手ID
    */
   static async delete(id) {
-    throw new Error('该接口后端未实现：delete assistant');
+    try {
+      const token = getAuthToken();
+      const params = new URLSearchParams({ aiAssistantId: id });
+      const response = await fetch(`/api/aiAssistant/deleteAssistant?${params.toString()}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Token: token } : {})
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting assistant:', error);
+      throw error;
+    }
   }
 
   static async getConversationLog(aiAssistantId) {

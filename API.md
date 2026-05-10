@@ -14,7 +14,8 @@
 - [5. REST API](#5-rest-api)
   - [5.1 用户模块](#51-用户模块-api-public-user)
   - [5.2 AI 助手模块](#52-ai-助手模块-api-aiassistant)
-  - [5.3 推荐新增接口](#53-推荐新增接口)
+  - [5.3 知识库模块](#53-知识库模块-api-knowledge-base)
+  - [5.4 推荐新增接口](#54-推荐新增接口)
 - [6. SSE 流式协议](#6-sse-流式协议)
 - [7. WebSocket 协议](#7-websocket-协议)
 - [8. 前端对接现状](#8-前端对接现状)
@@ -379,7 +380,97 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
-### 5.3 推荐新增接口
+### 5.3 知识库模块 `/api/knowledge-base`
+
+#### `POST /api/knowledge-base` — 创建知识库
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+请求体：
+
+```json
+{
+  "name": "string // 知识库名称",
+  "description": "string // 知识库描述（可选，最长 200 字符）"
+}
+```
+
+创建后自动设置状态为 `ACTIVE`，文档数和切片数初始为 0。
+
+---
+
+#### `GET /api/knowledge-base` — 获取知识库列表
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<List<KnowledgeBaseVO>>`
+
+返回当前用户创建的所有知识库。
+
+成功响应：
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "string // 知识库 UUID",
+      "name": "string // 名称",
+      "description": "string // 描述（可为 null）",
+      "status": "ACTIVE",
+      "documentCount": 5,
+      "chunkCount": 128,
+      "createdAt": "2026-05-10T12:00:00",
+      "updatedAt": "2026-05-10T12:00:00"
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/knowledge-base/{id}` — 获取知识库详情
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<KnowledgeBaseVO>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `String` | 知识库 ID |
+
+---
+
+#### `PUT /api/knowledge-base/{id}` — 修改知识库
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `String` | 知识库 ID |
+
+请求体同 `POST /api/knowledge-base`。
+
+---
+
+#### `DELETE /api/knowledge-base/{id}` — 删除知识库
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `id` | `String` | 知识库 ID |
+
+---
+
+### 5.4 推荐新增接口
 
 以下接口基于三个维度综合建议：
 
@@ -389,47 +480,9 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
-#### 5.3.1 知识库 CRUD（建议 `/api/knowledge-base`）
+#### 5.4.1 知识库文件管理（建议 `/api/knowledge-base/{id}/file`）
 
-| 方法 | 路径 | 说明 | 优先级 |
-|------|------|------|--------|
-| `POST` | `/api/knowledge-base` | 创建知识库 | **高** |
-| `GET` | `/api/knowledge-base` | 获取当前用户的知识库列表 | **高** |
-| `GET` | `/api/knowledge-base/{id}` | 获取知识库详情 | 中 |
-| `PUT` | `/api/knowledge-base/{id}` | 修改知识库名称/描述 | 中 |
-| `DELETE` | `/api/knowledge-base/{id}` | 删除知识库 | **高** |
-
-创建/修改请求体：
-
-```json
-{
-  "name": "string // 知识库名称",
-  "description": "string // 知识库描述"
-}
-```
-
-列表响应 data 示例：
-
-```json
-[
-  {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "documentCount": 5,
-    "chunkCount": 128,
-    "status": "ACTIVE",
-    "createdAt": "2026-05-10T12:00:00",
-    "updatedAt": "2026-05-10T12:00:00"
-  }
-]
-```
-
-`status` 建议枚举：`ACTIVE` / `ARCHIVED` / `DISABLED`。
-
----
-
-#### 5.3.2 知识库文件管理（建议 `/api/knowledge-base/{id}/file`）
+**知识库 CRUD 已实现**，见 [5.3 知识库模块](#53-知识库模块-api-knowledge-base)。以下为尚未实现的文件管理功能：
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -453,7 +506,7 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
-#### 5.3.3 对话管理扩展（扩展 `/api/aiAssistant`）
+#### 5.4.2 对话管理扩展（扩展 `/api/aiAssistant`）
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -472,7 +525,7 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
-#### 5.3.4 语音模块（建议 `/api/speech`）
+#### 5.4.3 语音模块（建议 `/api/speech`）
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -496,7 +549,7 @@ TTS 响应：`audio/wav` 二进制流。
 
 ---
 
-#### 5.3.5 用户自助管理（扩展 `/api/public/user`）
+#### 5.4.4 用户自助管理（扩展 `/api/public/user`）
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -523,7 +576,7 @@ TTS 响应：`audio/wav` 二进制流。
 
 ---
 
-#### 5.3.6 系统
+#### 5.4.5 系统
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
@@ -677,31 +730,24 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 | `assistant.js` | `findAll()` | `GET /api/aiAssistant/aiAssistants` | 正常 |
 | `assistant.js` | `streamGenerateReply()` | `POST /api/aiAssistant/streamGenerateReply` | 正常 |
 | `assistant.js` | `getConversationLog()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常 |
+| `assistant.js` | `modifyCommon()` | `POST /api/aiAssistant/modifyAssistantConfig` | 正常 |
+| `assistant.js` | `delete()` | `DELETE /api/aiAssistant/deleteAssistant` | 正常 |
+| `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
+| `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
+| `knowledge.js` | `deleteKnowledgeBase()` | `DELETE /api/knowledge-base/{id}` | 正常 |
 | `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
 
 ### 前端 Stub（后端未实现）
 
 | 前端文件 | 方法 | 错误信息 | 建议后端接口 |
 |----------|------|----------|-------------|
-| `assistant.js` | `modifyCommon()` | "该接口后端未实现" | 已实现 `POST /modifyAssistantConfig`，前端待对接 |
-| `assistant.js` | `delete()` | "该接口后端未实现" | 已实现 `DELETE /deleteAssistant`，前端待对接 |
 | `message.js` | `addMessages()` | "该接口后端未实现" | `POST /api/aiAssistant/{id}/conversation` |
 | `message.js` | `resetHistory()` | "该接口后端未实现" | `DELETE /api/aiAssistant/{id}/conversation-log` |
-| `knowledge.js` | `uploadFile()` | "知识库相关接口在当前后端版本未实现" | `POST /api/knowledge-base/{id}/file` |
-| `knowledge.js` | `createKnowledgeBase()` | 同上 | `POST /api/knowledge-base` |
-| `knowledge.js` | `getKnowledgeBasesByUserId()` | 同上 | `GET /api/knowledge-base` |
-| `knowledge.js` | `deleteKnowledgeBase()` | 同上 | `DELETE /api/knowledge-base/{id}` |
+| `knowledge.js` | `uploadFile()` | "知识库文件管理接口在当前后端版本未实现" | `POST /api/knowledge-base/{id}/file` |
 | `knowledge.js` | `getKnowledgeBaseFiles()` | 同上 | `GET /api/knowledge-base/{id}/file` |
 | `knowledge.js` | `addFilesToKnowledgeBase()` | 同上 | `PATCH /api/knowledge-base/{id}/file` |
 | `knowledge.js` | `removeFilesFromKnowledgeBase()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
 | `knowledge.js` | `getKnowledgeBaseJobStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
 | `knowledge.js` | `getFileStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
 | `knowledge.js` | `deleteFile()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
-| `knowledge.js` | `getFilesByUserId()` | 同上 | `GET /api/knowledge-base/{id}/file`（按知识库） |
-
-### 前端可立即修复
-
-`assistant.js` 中的 `modifyCommon()` 和 `delete()` 后端接口已存在：
-
-- **modifyCommon** → `POST /api/aiAssistant/modifyAssistantConfig?aiAssistantId={id}` + body `{ name, description, character, knowledgeBaseId }`
-- **delete** → `DELETE /api/aiAssistant/deleteAssistant?aiAssistantId={id}`
+| `knowledge.js` | `getFilesByUserId()` | 同上 | 已弃用，使用 `getKnowledgeBasesByUserId()` |
