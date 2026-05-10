@@ -38,13 +38,17 @@ public class AIAssistantController {
     public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
         aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
     }
-    
-    //弃用
-    @PostMapping("/generateReply")
-    @AutoResult
-    @OperateLog("生成回复")
-    public String generateReply(@RequestBody QuestionDTO questionDTO) {
-        return aiAssistantApplicationService.answerQuestion(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
+
+    @PostMapping("/modifyAssistantConfig")
+    @OperateLog("修改助手配置")
+    public void modifyAssistantConfig(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO,@RequestParam String aiAssistantId) {
+        aiAssistantApplicationService.modifyAssistantConfig(aiAssistantId, aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
+    }
+
+    @DeleteMapping("/deleteAssistant")
+    @OperateLog("删除助手")
+    public void deleteAssistant(@RequestParam String aiAssistantId) {
+        aiAssistantApplicationService.deleteAssistant(aiAssistantId);
     }
 
     @PostMapping(value = "/streamGenerateReply", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)

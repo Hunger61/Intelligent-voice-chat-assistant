@@ -12,14 +12,10 @@ import java.util.ArrayList;
 @Component
 public class DialogueFactory {
     public static Dialogue createNewDialogue(AIAssistantId aiAssistantId) {
-        return new Dialogue(Identity.generate(DialogueId.class),aiAssistantId);
+        return new Dialogue(Identity.generate(DialogueId.class), aiAssistantId);
     }
 
     public static Dialogue reconstitute(DialogueId dialogueId, AIAssistantId aiAssistantId, ArrayList<DialogueContext> dialogueContexts) {
-        Dialogue dialogue = new Dialogue(dialogueId,aiAssistantId);
-        for (DialogueContext dialogueContext : dialogueContexts){
-            dialogue.addContext(dialogueContext);
-        }
-        return dialogue;
+        return new Dialogue(dialogueId, aiAssistantId, dialogueContexts);
     }
 }

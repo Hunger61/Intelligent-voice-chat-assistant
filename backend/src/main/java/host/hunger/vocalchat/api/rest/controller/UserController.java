@@ -43,7 +43,7 @@ public class UserController {
     @SkipToken
     public void getVerificationCode(@RequestParam String email) {
         userApplicationService.sendVerificationCode(email);
-    }// todo缺少返回值
+    }
 
     @PostMapping("/logout")
     @AutoResult

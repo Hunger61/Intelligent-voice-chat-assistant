@@ -1,211 +1,707 @@
-# VocalChat API 文档（前后端分离，最佳实践版）
+# VocalChat API 文档
 
-> 更新时间：2026-04-07  
-> 依据代码：`backend/src/main/java/**`、`frontend/src/api/**`、`frontend/src/pages/**`
+> 更新时间：2026-05-10
+> 依据代码：`backend/src/main/java/**`、`frontend/src/api/**`
 
-## 0. 变更标注（相对旧版文档）
+---
 
-- `【新增】` 助手列表返回字段包含 `id/name/description/character`（已对齐前端主流程）。
-- `【修改】` 响应约定明确支持三种形态：`BaseResult`、裸 JSON、空响应（`204/void` 场景）。
-- `【修改】` 会话日志角色规范化为小写 `user/assistant`（前端展示约定）。
-- `【删除】` 旧地址 `ws://localhost:9090/ai_assistant/text_chat` 与 `ws://localhost:9091/ai_assistant/vocal_chat` 不再作为主协议，仅作为遗留代码说明。
+## 目录
 
-## 1. 基础信息
+- [1. 概述](#1-概述)
+- [2. 认证机制](#2-认证机制)
+- [3. 通用响应格式](#3-通用响应格式)
+- [4. 错误码](#4-错误码)
+- [5. REST API](#5-rest-api)
+  - [5.1 用户模块](#51-用户模块-api-public-user)
+  - [5.2 AI 助手模块](#52-ai-助手模块-api-aiassistant)
+  - [5.3 推荐新增接口](#53-推荐新增接口)
+- [6. SSE 流式协议](#6-sse-流式协议)
+- [7. WebSocket 协议](#7-websocket-协议)
+- [8. 前端对接现状](#8-前端对接现状)
 
-- HTTP Base URL：`http://localhost:8080`
-- WebSocket Base URL：`ws://localhost:8080/ws/chat?token=<JWT>`
-- 鉴权：
-  - HTTP：请求头 `Token: <JWT>`
-  - WebSocket：握手 query `token=<JWT>`
+---
 
-## 2. 通用约定
+## 1. 概述
 
-### 2.1 返回体兼容策略（联调必读）
+| 项目 | 说明 |
+|------|------|
+| 基础 URL | `http://<host>:<port>`，无全局前缀 |
+| 鉴权方式 | JWT，通过 HTTP Header `Token` 传递 |
+| 请求格式 | `application/json`（文件上传除外） |
+| 流式响应 | SSE（`text/event-stream`） |
+| 实时通信 | WebSocket `ws://<host>:<port>/ws/chat?token=<JWT>` |
 
-当前项目运行态可能出现以下三类返回：
+### 拦截器链
 
-1. `BaseResult<T>` 包装：
+所有 HTTP 请求经过两层拦截器（`/**`）：
+
+| 顺序 | 拦截器 | 职责 |
+|------|--------|------|
+| 0 | `RequestInterceptor` | 注入 `TRACE_ID` 到 MDC，记录请求耗时 |
+| 1 | `UserInterceptor` | 验证 `Token` Header 中的 JWT，将 `User` 写入 `UserContext` |
+
+- 方法标注 `@SkipToken` 时跳过鉴权。
+- 鉴权失败返回 HTTP `401`，body 为 `"Unauthorized: Missing token"` 或 `"Unauthorized: User not found"`。
+
+---
+
+## 2. 认证机制
+
+### Token 获取
+
+注册或登录成功后，响应的 `data` 字段即为 JWT Token。
+
+### Token 使用
+
+所有需要鉴权的请求在 HTTP Header 中携带：
+
+```
+Token: <jwt_token_string>
+```
+
+### Token 生命周期
+
+- 登录/注册时签发，Redis 中存储 key 为 `user:<userId>`，TTL 为 86400 秒（24 小时）。
+- 登出时删除 Redis 中的 Token 记录。
+
+### WebSocket 鉴权
+
+握手阶段通过查询参数传递：
+
+```
+ws://<host>:<port>/ws/chat?token=<jwt_token_string>
+```
+
+鉴权失败则拒绝握手（HTTP 401）。
+
+---
+
+## 3. 通用响应格式
+
+### BaseResult\<T\>
+
+标注 `@AutoResult` 的方法，返回值自动包装：
+
+```json
+{
+  "code": null,
+  "message": null,
+  "success": true,
+  "data": "<实际载荷>"
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `code` | `Integer` | 成功为 `null`，失败为错误码 |
+| `message` | `String` | 成功为 `null`，失败为错误描述 |
+| `success` | `boolean` | `true` / `false` |
+| `data` | `T` | 实际载荷，可为 `null` |
+
+成功示例：
+
+```json
+{
+  "code": null,
+  "message": null,
+  "success": true,
+  "data": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+失败示例：
+
+```json
+{
+  "code": 1004,
+  "message": "密码不正确",
+  "success": false,
+  "data": null
+}
+```
+
+### 兼容说明
+
+部分接口未标注 `@AutoResult`（如助手管理类接口返回 `void`），此时 `BaseResultHandler` 不会包装响应。前端统一通过 `_handleResponse` 兼容三种形态：
+
+1. `BaseResult` 包装（有 `success` 字段）
+2. 裸 JSON（数组 / 对象 / 字符串）
+3. 空响应（HTTP 200，body 为空）
+
+---
+
+## 4. 错误码
+
+| 错误码 | 枚举常量 | 中文描述 |
+|--------|----------|----------|
+| 1000 | `COMMON_ERROR` | 系统异常，请联系管理员 |
+| 1001 | `VERIFICATION_CODE_INCORRECT` | 验证码不正确 |
+| 1002 | `EMAIL_ALREADY_USED` | 邮箱已被使用 |
+| 1003 | `EMAIL_NOT_FOUND` | 邮箱未找到 |
+| 1004 | `PASSWORD_INCORRECT` | 密码不正确 |
+| 1005 | `NO_LOGIN` | 未登录或登录已过期 |
+| 2001 | `AI_ASSISTANT_ID_NULL` | AI 助手 ID 为空 |
+| 2002 | `AI_ASSISTANT_NOT_FOUND` | AI 助手不存在 |
+| 3001 | `DIALOGUE_NOT_FOUND` | 对话不存在 |
+| 4001 | `USER_INPUT_EMPTY` | 用户输入不能为空 |
+
+---
+
+## 5. REST API
+
+### 5.1 用户模块 `/api/public/user`
+
+#### `POST /register` — 注册
+
+- **鉴权**：`@SkipToken`
+- **响应**：`@AutoResult` → `BaseResult<String>`，data 为 JWT
+
+请求体：
+
+```json
+{
+  "nickName": "string // 昵称",
+  "password": "string // 明文密码",
+  "email": "string // 邮箱",
+  "verificationCode": "string // 邮箱验证码"
+}
+```
+
+成功响应：
 
 ```json
 {
   "success": true,
-  "code": null,
-  "message": null,
-  "data": {}
+  "data": "eyJhbGciOiJIUzI1NiJ9..."
 }
 ```
 
-2. 裸 JSON（数组/对象/字符串）
-3. 空响应（`void`）
+可能错误码：`1001`、`1002`
 
-原因：`@AutoResult` 存在，但 `BaseResultHandler` 包扫描配置与当前包名不一致，是否生效依赖实际运行配置。
+---
 
-### 2.2 错误码（`ErrorEnum`）
+#### `POST /login` — 登录
 
-| code | message |
-|---|---|
-| 1000 | 系统异常，请联系管理员 |
-| 1001 | 验证码不正确 |
-| 1002 | 邮箱已被使用 |
-| 1003 | 邮箱未找到 |
-| 1004 | 密码不正确 |
-| 2001 | AI 助手 ID 为空 |
-| 2002 | AI 助手不存在 |
-| 3001 | 对话不存在 |
+- **鉴权**：`@SkipToken`
+- **响应**：`@AutoResult` → `BaseResult<String>`，data 为 JWT
 
-## 3. HTTP API
-
-### 3.1 用户接口
-
-| 状态 | 方法 | 路径 | 鉴权 | 前端使用 |
-|---|---|---|---|---|
-| 已实现 | POST | `/api/public/user/register` | 跳过 | `frontend/src/api/user.js` |
-| 已实现 | POST | `/api/public/user/login` | 跳过 | `frontend/src/api/user.js` |
-| 部分实现 | POST | `/api/public/user/getVerificationCode?email=...` | 跳过 | `frontend/src/api/user.js` |
-| 已实现 | POST | `/api/public/user/logout` | 需要 | `frontend/src/api/user.js` |
-| 部分实现 | GET | `/api/public/user/info` | 需要 | 当前前端未依赖 |
-
-#### `POST /api/public/user/register`
-
-请求：
+请求体：
 
 ```json
 {
-  "nickName": "fate",
-  "email": "fate@example.com",
-  "password": "123456",
-  "verificationCode": "123456"
+  "email": "string // 邮箱",
+  "password": "string // 明文密码"
 }
 ```
 
-响应：JWT 字符串（可能在 `data`，也可能裸返回）。
-
-#### `POST /api/public/user/login`
-
-请求：
+成功响应：
 
 ```json
 {
-  "email": "fate@example.com",
-  "password": "123456"
+  "success": true,
+  "data": "eyJhbGciOiJIUzI1NiJ9..."
 }
 ```
 
-响应：JWT 字符串（前端持久化键 `vocalchat_token`）。
+可能错误码：`1003`、`1004`
 
-#### `POST /api/public/user/getVerificationCode`
+---
 
-- 参数：`email`（query）
-- 当前实现返回 `void`；前端已按“空响应成功”处理。
+#### `POST /getVerificationCode` — 发送验证码
 
-#### `POST /api/public/user/logout`
+- **鉴权**：`@SkipToken`
+- **响应**：`@AutoResult` → `BaseResult<null>`
 
-- Header：`Token`
-- 当前实现返回 `void`。
+查询参数：
 
-#### `GET /api/public/user/info`
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `email` | `String` | 是 | 接收验证码的邮箱 |
 
-- 当前代码返回 `null`（占位实现）。
+验证码为 6 位随机数字，Redis 缓存 5 分钟，异步邮件发送。
 
-### 3.2 助手接口
+---
 
-| 状态 | 方法 | 路径 | 鉴权 | 前端使用 |
-|---|---|---|---|---|
-| 部分实现 | POST | `/api/public/aiAssistant/createNewAssistant` | 需要 | `frontend/src/api/assistant.js` |
-| 已实现（弃用） | POST | `/api/public/aiAssistant/generateReply` | 跳过 | 前端未调用 |
-| 已实现（推荐） | POST | `/api/public/aiAssistant/streamGenerateReply` | 跳过 | `frontend/src/api/assistant.js` |
-| 已实现 | GET | `/api/public/aiAssistant/aiAssistants` | 需要 | `frontend/src/api/assistant.js` |
-| 已实现 | GET | `/api/public/aiAssistant/{aiAssistantId}/conversation-log` | 需要 | `frontend/src/api/assistant.js`、`frontend/src/api/message.js` |
+#### `POST /logout` — 登出
 
-#### `POST /api/public/aiAssistant/createNewAssistant`
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<null>`
 
-请求：
+无请求参数，从 `UserContext` 获取当前用户，清除 Redis 中的 Token。
+
+---
+
+#### `GET /info` — 获取当前用户信息
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<UserInfoVO>`
+
+成功响应：
 
 ```json
 {
-  "name": "默认助手",
-  "description": "用于测试",
-  "character": "你是一个AI语音助手"
+  "success": true,
+  "data": {
+    "id": "string // 用户 UUID",
+    "nickName": "string // 昵称",
+    "email": "string // 邮箱"
+  }
 }
 ```
 
-当前行为：`void` 返回（未返回新建助手 ID）。
+---
 
-#### `GET /api/public/aiAssistant/aiAssistants`
+### 5.2 AI 助手模块 `/api/aiAssistant`
 
-响应（`【新增】` 字段已在后端 VO 对齐）：
+> 注意：以下接口中，标注 `@AutoResult` 的自动包装为 `BaseResult`；未标注的返回原始 `void`。路径前缀为 `/api/aiAssistant`（非 `/api/public/aiAssistant`）。
+
+#### `POST /createNewAssistant` — 创建助手
+
+- **鉴权**：需要 Token
+- **响应**：无包装（返回 `void`）
+
+请求体：
+
+```json
+{
+  "name": "string // 助手名称",
+  "description": "string // 助手描述",
+  "character": "string // 角色设定 / System Prompt",
+  "knowledgeBaseId": "string // 关联知识库 ID（可选，空字符串表示不关联）"
+}
+```
+
+创建助手时自动生成初始空对话（Dialogue）。
+
+**注意**：当前返回 `void`，未返回新建助手的 ID。建议前端在调用后重新请求 `GET /aiAssistants` 获取最新列表。
+
+---
+
+#### `POST /modifyAssistantConfig` — 修改助手配置
+
+- **鉴权**：需要 Token
+- **响应**：无包装（返回 `void`）
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aiAssistantId` | `String` | 是 | 助手 ID |
+
+请求体：同 `/createNewAssistant`
+
+---
+
+#### `DELETE /deleteAssistant` — 删除助手
+
+- **鉴权**：需要 Token
+- **响应**：无包装（返回 `void`）
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aiAssistantId` | `String` | 是 | 助手 ID |
+
+---
+
+#### `GET /aiAssistants` — 获取助手列表
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<List<AIAssistantVO>>`
+
+返回当前用户创建的所有助手。
+
+成功响应：
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "string // 助手 UUID",
+      "name": "string // 助手名称",
+      "description": "string // 描述",
+      "character": "string // 角色设定",
+      "knowledgeBaseId": "string // 关联知识库 ID（可为 null）"
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /{aiAssistantId}/conversation-log` — 获取会话记录
+
+- **鉴权**：需要 Token
+- **响应**：`@AutoResult` → `BaseResult<List<Pair<String, String>>>`
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `aiAssistantId` | `String` | 助手 ID |
+
+成功响应：
+
+```json
+{
+  "success": true,
+  "data": [
+    ["USER", "你好"],
+    ["ASSISTANT", "你好！有什么可以帮你的？"],
+    ["USER", "帮我写一首诗"],
+    ["ASSISTANT", "好的，这是一首关于春天的诗..."]
+  ]
+}
+```
+
+`data` 为二维数组，每个元素 `[角色, 内容]`，按时间顺序排列。角色为 `USER` / `ASSISTANT`。前端会规范化为小写 `user` / `assistant`。
+
+---
+
+#### `POST /streamGenerateReply` — 流式生成回复（SSE）
+
+- **鉴权**：需要 Token
+- **Content-Type**：请求 `application/json`，响应 `text/event-stream`
+- **响应**：`SseEmitter`（无 `@AutoResult` 包装）
+
+请求体：
+
+```json
+{
+  "question": "string // 用户问题",
+  "aiAssistantId": "string // 助手 ID"
+}
+```
+
+SSE 事件详见 [第 6 节](#6-sse-流式协议)。
+
+---
+
+### 5.3 推荐新增接口
+
+以下接口基于三个维度综合建议：
+
+1. **前端 stub 分析**：`knowledge.js` 全部 11 个方法、`message.js` 中 2 个方法、`assistant.js` 中 2 个方法均抛出 "未实现" 错误
+2. **领域模型储备**：`KnowledgeBase`、`SpeechProcessor`、`Session` 等聚合根已建模但无 API 暴露
+3. **功能闭环需要**：用户自助管理（改密/改资料）、会话重置、助手详情查询等
+
+---
+
+#### 5.3.1 知识库 CRUD（建议 `/api/knowledge-base`）
+
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `POST` | `/api/knowledge-base` | 创建知识库 | **高** |
+| `GET` | `/api/knowledge-base` | 获取当前用户的知识库列表 | **高** |
+| `GET` | `/api/knowledge-base/{id}` | 获取知识库详情 | 中 |
+| `PUT` | `/api/knowledge-base/{id}` | 修改知识库名称/描述 | 中 |
+| `DELETE` | `/api/knowledge-base/{id}` | 删除知识库 | **高** |
+
+创建/修改请求体：
+
+```json
+{
+  "name": "string // 知识库名称",
+  "description": "string // 知识库描述"
+}
+```
+
+列表响应 data 示例：
 
 ```json
 [
   {
-    "id": "assistant_id",
-    "name": "默认语音助手",
-    "description": "默认描述",
-    "character": "你是一个AI语音助手"
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "documentCount": 5,
+    "chunkCount": 128,
+    "status": "ACTIVE",
+    "createdAt": "2026-05-10T12:00:00",
+    "updatedAt": "2026-05-10T12:00:00"
   }
 ]
 ```
 
-#### `GET /api/public/aiAssistant/{aiAssistantId}/conversation-log`
+`status` 建议枚举：`ACTIVE` / `ARCHIVED` / `DISABLED`。
 
-- 返回：`List<Pair<String,String>>`
-- 实际数据形态：二维数组，如：
+---
 
-```json
-[
-  ["USER", "你好"],
-  ["ASSISTANT", "你好，我在。"]
-]
-```
+#### 5.3.2 知识库文件管理（建议 `/api/knowledge-base/{id}/file`）
 
-前端在 `MessageService` 中会规范化为小写角色：`user/assistant`。
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `POST` | `/api/knowledge-base/{id}/file` | 上传文件（支持 PDF / TXT / MD） | **高** |
+| `GET` | `/api/knowledge-base/{id}/file` | 获取知识库内文件列表 | **高** |
+| `DELETE` | `/api/knowledge-base/{id}/file/{fileId}` | 删除文件 | 中 |
+| `GET` | `/api/knowledge-base/{id}/file/{fileId}/status` | 查询文件解析/向量化进度 | 中 |
 
-#### `POST /api/public/aiAssistant/streamGenerateReply`（SSE）
-
-请求：
+上传为 `multipart/form-data`，字段名 `file`。文件上传后异步进行文本提取、切片与向量化；通过 status 接口轮询进度，返回格式：
 
 ```json
 {
-  "question": "你好",
-  "aiAssistantId": "assistant_id"
+  "status": "PROCESSING",
+  "progress": 45,
+  "totalChunks": 0,
+  "completedChunks": 0
 }
 ```
 
-事件：`started`、`token`、`fallback`、`done`、`error`、`heartbeat`。
+可复用的基础设施：`ObjectStorageService`（MinIO 实例已运行，支持分片上传、预签名 URL）。
 
-## 4. WebSocket 协议（Java 后端）
+---
 
-### 4.1 入口
+#### 5.3.3 对话管理扩展（扩展 `/api/aiAssistant`）
 
-- `ws://localhost:8080/ws/chat?token=<JWT>`
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `GET` | `/api/aiAssistant/{id}` | 获取单个助手详情 | **高** |
+| `DELETE` | `/api/aiAssistant/{id}/conversation-log` | 重置对话（清空上下文，生成新 Dialogue） | **高** |
+| `GET` | `/api/aiAssistant/{id}/conversation-log/page` | 分页获取会话记录 | 中 |
 
-### 4.2 命令
+分页参数：
 
-| command | payload | 状态 |
-|---|---|---|
-| `start_llm` | `ai_assistant_id` | 已实现 |
-| `generate` | `content` | 未完成（handler TODO） |
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `pageNum` | `int` | `1` | 页码（从 1 开始） |
+| `pageSize` | `int` | `20` | 每页条数 |
 
-### 4.3 现状风险
+> `DELETE .../conversation-log` 对应前端 `resetHistory()`，清空后后端自动创建空对话，用户感知为"新对话"。
 
-- 握手鉴权已实现。
-- 命令分发已实现。
-- `generate` 处理逻辑未闭环。
-- `afterConnectionClosed` / `handleTransportError` 尚未实现。
-- 握手属性键与会话注册读取键不一致，`userId` 绑定存在缺口。
+---
 
-## 5. 未实现能力（明确不扩展）
+#### 5.3.4 语音模块（建议 `/api/speech`）
 
-- 助手修改：`modify`
-- 助手删除：`delete`
-- 批量追加消息：`add_messages`
-- 重置历史：`reset_history`
-- 知识库接口全套（`frontend/src/api/knowledge.js`）
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `POST` | `/api/speech/asr` | 上传音频进行语音识别 | 中 |
+| `POST` | `/api/speech/tts` | 文本转语音 | 中 |
 
-## 6. 前端落地约束（已执行）
+ASR 请求：`multipart/form-data`，字段 `audio`（支持 wav/mp3/webm 等格式），附带 `aiAssistantId`。
 
-- API 解析统一兼容：包装/裸值/空响应。
-- 登录返回统一抽取 token 并写入 `localStorage`。
-- 助手列表刷新统一取 `response.data || response`。
-- 会话日志角色统一映射为 `user/assistant`，避免 UI 判断失败。
+TTS 请求体：
 
+```json
+{
+  "text": "string // 要合成的文本",
+  "voice": "string // 可选，语音风格"
+}
+```
+
+TTS 响应：`audio/wav` 二进制流。
+
+已有基础：`SpeechDomainService` 接口已定义（`TextToSpeech`、`registerSpeechProcessor`），`TextToSpeechApplicationService` 已监听 `QuestionAnsweredEvent` 自动触发生成。`AudioQuestionDTO` 已定义但未被任何 Controller 引用。
+
+---
+
+#### 5.3.5 用户自助管理（扩展 `/api/public/user`）
+
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `PUT` | `/api/public/user/profile` | 修改昵称 | 中 |
+| `PUT` | `/api/public/user/password` | 修改密码 | 中 |
+| `DELETE` | `/api/public/user/account` | 注销账号 | 低 |
+
+修改密码请求体：
+
+```json
+{
+  "oldPassword": "string",
+  "newPassword": "string"
+}
+```
+
+修改昵称请求体：
+
+```json
+{
+  "nickName": "string"
+}
+```
+
+---
+
+#### 5.3.6 系统
+
+| 方法 | 路径 | 说明 | 优先级 |
+|------|------|------|--------|
+| `GET` | `/api/health` | 健康检查（返回数据库/Redis/MinIO 连接状态） | 低 |
+
+---
+
+## 6. SSE 流式协议
+
+### 端点
+
+```
+POST /api/aiAssistant/streamGenerateReply
+Content-Type: application/json
+Accept: text/event-stream
+```
+
+### 事件一览
+
+| 事件名 | Data | 触发时机 |
+|--------|------|----------|
+| `started` | `"invoked"` | 请求已被接收，开始处理 |
+| `heartbeat` | `"ping"` | 每 15 秒，保持连接活跃 |
+| `token` | token 文本或 `""` | LLM 每输出一个 token |
+| `fallback` | `"true"` | 主模型失败，切换到备用方案 |
+| `done` | `"complete"` | 完整回复已推送并持久化 |
+| `error` | 异常信息或 `"timeout"` | 异常发生（`"timeout"` = 30 分钟超时） |
+
+### 典型事件流
+
+```
+event:started
+data:invoked
+
+event:token
+data:你好
+
+event:token
+data:！
+
+event:token
+data:有什么
+
+event:token
+data:可以帮
+
+event:token
+data:你的？
+
+event:done
+data:complete
+```
+
+### 连接参数
+
+| 参数 | 值 |
+|------|------|
+| 超时时间 | 30 分钟 |
+| 心跳间隔 | 15 秒 |
+
+---
+
+## 7. WebSocket 协议
+
+### 端点
+
+```
+ws://<host>:<port>/ws/chat?token=<jwt_token>
+```
+
+- 所有来源允许（Origin `*`）。
+- 握手阶段鉴权，失败返回 401 并拒绝连接。
+- 连接建立后 Session 注册到 `WebSocketSessionManager`（UserId ↔ Session 双向映射）。
+
+### 客户端 → 服务端（Command）
+
+消息为 JSON 文本，通过 `"command"` 字段多态路由：
+
+#### `start_llm` — 选择助手
+
+```json
+{
+  "command": "start_llm",
+  "ai_assistant_id": "string // 助手 UUID"
+}
+```
+
+将助手存入 WebSocket Session 属性（key: `"aiAssistant"`），供后续 `generate` 使用。
+
+#### `generate` — 生成回复
+
+```json
+{
+  "command": "generate",
+  "content": "string // 用户输入"
+}
+```
+
+> **状态**：`generate` 的实际 LLM 调用被注释（`FrontEndWebSocketHandler:102 //todo`），WebSocket 通道暂不可用于对话。当前请使用 REST `POST /streamGenerateReply`。
+
+### 服务端 → 客户端（Event）
+
+#### `chat_response` — 助手回复
+
+由 `QuestionAnsweredEvent` 领域事件触发：
+
+```json
+{
+  "event": "chat_response",
+  "chat_id": "1",
+  "payload": "助手回复的完整文本"
+}
+```
+
+> 注意：`chat_id` 硬编码为 `"1"`（`//todo`）。
+
+#### `repeat` — 回显用户输入
+
+由 `QuestionReceivedEvent` 领域事件触发：
+
+```json
+{
+  "type": "repeat",
+  "payload": "识别出的用户问题文本"
+}
+```
+
+### 已知问题
+
+| 问题 | 位置 | 影响 |
+|------|------|------|
+| `afterConnectionClosed` 未实现 | `FrontEndWebSocketHandler:49` | Session 断连不清理，内存泄漏 |
+| `handleTransportError` 未实现 | `FrontEndWebSocketHandler:45` | 传输异常无处理 |
+| `generate` 的 LLM 调用被注释 | `FrontEndWebSocketHandler:102` | WebSocket 通道无法生成回复 |
+| `chat_id` 硬编码 `"1"` | `DomainEventListener:26` | 无法区分不同对话 |
+| Session 属性 key 不一致 | Interceptor: `userId.toString()` vs Handler: `"userId"` | 可能导致 Session 映射错误 |
+
+---
+
+## 8. 前端对接现状
+
+### 已正常调用
+
+| 前端文件 | 方法 | 后端接口 | 状态 |
+|----------|------|----------|------|
+| `user.js` | `register()` | `POST /api/public/user/register` | 正常 |
+| `user.js` | `login()` | `POST /api/public/user/login` | 正常 |
+| `user.js` | `getVerificationCode()` | `POST /api/public/user/getVerificationCode` | 正常 |
+| `user.js` | `logout()` | `POST /api/public/user/logout` | 正常 |
+| `assistant.js` | `add()` | `POST /api/aiAssistant/createNewAssistant` | 正常 |
+| `assistant.js` | `findAll()` | `GET /api/aiAssistant/aiAssistants` | 正常 |
+| `assistant.js` | `streamGenerateReply()` | `POST /api/aiAssistant/streamGenerateReply` | 正常 |
+| `assistant.js` | `getConversationLog()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常 |
+| `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
+
+### 前端 Stub（后端未实现）
+
+| 前端文件 | 方法 | 错误信息 | 建议后端接口 |
+|----------|------|----------|-------------|
+| `assistant.js` | `modifyCommon()` | "该接口后端未实现" | 已实现 `POST /modifyAssistantConfig`，前端待对接 |
+| `assistant.js` | `delete()` | "该接口后端未实现" | 已实现 `DELETE /deleteAssistant`，前端待对接 |
+| `message.js` | `addMessages()` | "该接口后端未实现" | `POST /api/aiAssistant/{id}/conversation` |
+| `message.js` | `resetHistory()` | "该接口后端未实现" | `DELETE /api/aiAssistant/{id}/conversation-log` |
+| `knowledge.js` | `uploadFile()` | "知识库相关接口在当前后端版本未实现" | `POST /api/knowledge-base/{id}/file` |
+| `knowledge.js` | `createKnowledgeBase()` | 同上 | `POST /api/knowledge-base` |
+| `knowledge.js` | `getKnowledgeBasesByUserId()` | 同上 | `GET /api/knowledge-base` |
+| `knowledge.js` | `deleteKnowledgeBase()` | 同上 | `DELETE /api/knowledge-base/{id}` |
+| `knowledge.js` | `getKnowledgeBaseFiles()` | 同上 | `GET /api/knowledge-base/{id}/file` |
+| `knowledge.js` | `addFilesToKnowledgeBase()` | 同上 | `PATCH /api/knowledge-base/{id}/file` |
+| `knowledge.js` | `removeFilesFromKnowledgeBase()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
+| `knowledge.js` | `getKnowledgeBaseJobStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
+| `knowledge.js` | `getFileStatus()` | 同上 | `GET /api/knowledge-base/{id}/file/{fileId}/status` |
+| `knowledge.js` | `deleteFile()` | 同上 | `DELETE /api/knowledge-base/{id}/file/{fileId}` |
+| `knowledge.js` | `getFilesByUserId()` | 同上 | `GET /api/knowledge-base/{id}/file`（按知识库） |
+
+### 前端可立即修复
+
+`assistant.js` 中的 `modifyCommon()` 和 `delete()` 后端接口已存在：
+
+- **modifyCommon** → `POST /api/aiAssistant/modifyAssistantConfig?aiAssistantId={id}` + body `{ name, description, character, knowledgeBaseId }`
+- **delete** → `DELETE /api/aiAssistant/deleteAssistant?aiAssistantId={id}`

@@ -1,5 +1,7 @@
 package host.hunger.vocalchat.domain.model.aiassistant;
 
+import host.hunger.vocalchat.domain.model.dialogue.Dialogue;
+import host.hunger.vocalchat.domain.model.dialogue.DialogueContext;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import host.hunger.vocalchat.domain.model.knowledgeabase.KnowledgeBaseId;
 import host.hunger.vocalchat.domain.model.shared.AggregateRoot;
@@ -16,6 +18,7 @@ public class AIAssistant extends AggregateRoot<AIAssistantId> {
     private AIAssistantCharacter assistantCharacter;
     private UserId userId;
     private KnowledgeBaseId knowledgeBaseId;
+    private Dialogue dialogue;
 
 
     public AIAssistant (AIAssistantName name,
@@ -72,6 +75,32 @@ public class AIAssistant extends AggregateRoot<AIAssistantId> {
                        KnowledgeBaseId knowledgeBaseId) {
         super(aiAssistantId);
         this.userId = userId;
+        this.name = name;
+        this.description = description;
+        this.assistantCharacter = character;
+        this.knowledgeBaseId = knowledgeBaseId;
+    }
+
+    public AIAssistant(AIAssistantId aiAssistantId, UserId userId, AIAssistantName name,
+                       AIAssistantDescription description, AIAssistantCharacter character,
+                       KnowledgeBaseId knowledgeBaseId, Dialogue dialogue) {
+        super(aiAssistantId);
+        this.userId = userId;
+        this.name = name;
+        this.description = description;
+        this.assistantCharacter = character;
+        this.knowledgeBaseId = knowledgeBaseId;
+        this.dialogue = dialogue;
+    }
+
+    public void addDialogueContext(DialogueContext context) {
+        if (dialogue == null) {
+            throw new IllegalStateException("Dialogue not initialized for this AIAssistant");
+        }
+        dialogue.addContext(context);
+    }
+
+    public void modifyConfig(AIAssistantName name, AIAssistantDescription description, AIAssistantCharacter character, KnowledgeBaseId knowledgeBaseId) {
         this.name = name;
         this.description = description;
         this.assistantCharacter = character;
