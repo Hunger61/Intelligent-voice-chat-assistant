@@ -76,6 +76,21 @@ class UserService {
     return this._handleResponse(response);
   }
 
+  /**
+   * 获取当前登录用户详细信息
+   */
+  static async getUserInfo() {
+    const token = getAuthToken();
+    const response = await fetch('/api/public/user/info', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
+  }
+
   static getCurrentUserFromToken() {
     const token = getAuthToken();
     if (!token) return null;

@@ -37,6 +37,43 @@ class KnowledgeService {
   }
 
   /**
+   * 获取知识库详情
+   * @param {string} id - 知识库ID
+   */
+  static async getKnowledgeBase(id) {
+    const token = getAuthToken();
+    const response = await fetch(`/api/knowledge-base/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
+  }
+
+  /**
+   * 修改知识库
+   * @param {string} id - 知识库ID
+   * @param {Object} data - { name, description }
+   */
+  static async modifyKnowledgeBase(id, data) {
+    const token = getAuthToken();
+    const response = await fetch(`/api/knowledge-base/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      },
+      body: JSON.stringify({
+        name: data.name,
+        description: data.description || ''
+      })
+    });
+    return this._handleResponse(response);
+  }
+
+  /**
    * 删除知识库
    * @param {string} id - 知识库ID
    */

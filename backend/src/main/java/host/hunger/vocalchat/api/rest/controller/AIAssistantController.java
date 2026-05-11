@@ -34,22 +34,27 @@ public class AIAssistantController {
     private final ScheduledExecutorService keepAliveScheduler;
 
 
+    @AutoResult
     @PostMapping("/createNewAssistant")
     @OperateLog("创建助手")
-    public void createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
-        aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
+    public String createNewAssistant(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO) {
+        return aiAssistantApplicationService.createNewAssistant(aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
     }
 
+    @AutoResult
     @PostMapping("/modifyAssistantConfig")
     @OperateLog("修改助手配置")
-    public void modifyAssistantConfig(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO,@RequestParam String aiAssistantId) {
+    public String modifyAssistantConfig(@RequestBody AIAssistantConfigDTO aiAssistantConfigDTO, @RequestParam String aiAssistantId) {
         aiAssistantApplicationService.modifyAssistantConfig(aiAssistantId, aiAssistantConfigDTO.getName(), aiAssistantConfigDTO.getDescription(), aiAssistantConfigDTO.getCharacter(), aiAssistantConfigDTO.getKnowledgeBaseId());
+        return aiAssistantId;
     }
 
+    @AutoResult
     @DeleteMapping("/deleteAssistant")
     @OperateLog("删除助手")
-    public void deleteAssistant(@RequestParam String aiAssistantId) {
+    public String deleteAssistant(@RequestParam String aiAssistantId) {
         aiAssistantApplicationService.deleteAssistant(aiAssistantId);
+        return aiAssistantId;
     }
 
     @PostMapping(value = "/streamGenerateReply", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)

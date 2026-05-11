@@ -112,12 +112,12 @@ public class AIAssistantApplicationService {
     }
 
     @Transactional
-    public void createNewAssistant(String name, String description, String character) {
-        createNewAssistant(name, description, character, null);
+    public String createNewAssistant(String name, String description, String character) {
+        return createNewAssistant(name, description, character, null);
     }
 
     @Transactional
-    public void createNewAssistant(String name, String description, String character, String knowledgeBaseId) {
+    public String createNewAssistant(String name, String description, String character, String knowledgeBaseId) {
         AIAssistantName aiAssistantName = new AIAssistantName(name);
         AIAssistantDescription aiAssistantDescription = new AIAssistantDescription(description);
         AIAssistantCharacter aiAssistantCharacter = new AIAssistantCharacter(character);
@@ -131,6 +131,7 @@ public class AIAssistantApplicationService {
         aiAssistantRepository.save(newAIAssistant);
         Dialogue dialogue = DialogueFactory.createNewDialogue(newAIAssistant.getId());
         aiAssistantRepository.saveDialogue(dialogue);
+        return newAIAssistant.getId().toString();
     }
 
     public List<Pair<String, String>> getConversationLog(String aiAssistantId) {

@@ -18,6 +18,7 @@
   - [5.4 推荐新增接口](#54-推荐新增接口)
 - [7. WebSocket 协议](#7-websocket-协议)
 - [8. 前端对接现状](#8-前端对接现状)
+- [9. 尚未完成的接口](#9-尚未完成的接口)
 
 ---
 
@@ -122,11 +123,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 
 ### 兼容说明
 
-部分接口未标注 `@AutoResult`（如助手管理类接口返回 `void`），此时 `BaseResultHandler` 不会包装响应。前端统一通过 `_handleResponse` 兼容三种形态：
-
-1. `BaseResult` 包装（有 `success` 字段）
-2. 裸 JSON（数组 / 对象 / 字符串）
-3. 空响应（HTTP 200，body 为空）
+除 SSE 流式接口外，所有 REST 接口均标注 `@AutoResult`，响应统一包装为 `BaseResult`。前端通过 `_handleResponse` 兼容处理。
 
 ---
 
@@ -253,12 +250,12 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 
 ### 5.2 AI 助手模块 `/api/aiAssistant`
 
-> 注意：以下接口中，标注 `@AutoResult` 的自动包装为 `BaseResult`；未标注的返回原始 `void`。路径前缀为 `/api/aiAssistant`（非 `/api/public/aiAssistant`）。
+> 注意：以下接口均标注 `@AutoResult`，响应自动包装为 `BaseResult`。SSE 流式接口不需要包装。路径前缀为 `/api/aiAssistant`（非 `/api/public/aiAssistant`）。
 
 #### `POST /createNewAssistant` — 创建助手
 
 - **鉴权**：需要 Token
-- **响应**：无包装（返回 `void`）
+- **响应**：`@AutoResult` → `BaseResult<String>`，data 为新创建的助手 ID
 
 请求体：
 
@@ -271,16 +268,14 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 }
 ```
 
-创建助手时自动生成初始空对话（Dialogue）。
-
-**注意**：当前返回 `void`，未返回新建助手的 ID。建议前端在调用后重新请求 `GET /aiAssistants` 获取最新列表。
+创建助手时自动生成初始空对话（Dialogue），返回新助手的 ID。
 
 ---
 
 #### `POST /modifyAssistantConfig` — 修改助手配置
 
 - **鉴权**：需要 Token
-- **响应**：无包装（返回 `void`）
+- **响应**：`@AutoResult` → `BaseResult<String>`，data 为助手 ID
 
 查询参数：
 
@@ -295,7 +290,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 #### `DELETE /deleteAssistant` — 删除助手
 
 - **鉴权**：需要 Token
-- **响应**：无包装（返回 `void`）
+- **响应**：`@AutoResult` → `BaseResult<String>`，data 为被删除的助手 ID
 
 查询参数：
 
@@ -580,25 +575,33 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 ---
 
-#### 5.4.1 语音模块（建议 `/api/speech`）
+#### 5.4.1 语音聊天 WebSocket（建议 `/ws/speech`）
 
-| 方法 | 路径 | 说明 | 优先级 |
-|------|------|------|--------|
-| `POST` | `/api/speech/asr` | 上传音频进行语音识别 | 中 |
-| `POST` | `/api/speech/tts` | 文本转语音 | 中 |
+语音聊天通过 WebSocket 直连 Java 后端，不走外部 WebRTC 服务。
 
-ASR 请求：`multipart/form-data`，字段 `audio`（支持 wav/mp3/webm 等格式），附带 `aiAssistantId`。
-
-TTS 请求体：
-
-```json
-{
-  "text": "string // 要合成的文本",
-  "voice": "string // 可选，语音风格"
-}
+```
+ws://<host>:<port>/ws/speech?token=<jwt_token>
 ```
 
-TTS 响应：`audio/wav` 二进制流。
+**客户端 → 服务端（二进制/JSON）:**
+
+| 消息类型 | 说明 |
+|----------|------|
+| 音频二进制帧 | 前端采集的音频数据，实时推流 |
+| `{type: "config", ...}` | LLM 和 TTS 配置参数 |
+| `{type: "hangup"}` | 挂断通话 |
+
+**服务端 → 客户端:**
+
+| 消息类型 | 说明 |
+|----------|------|
+| 音频二进制帧 | TTS 合成后的语音，前端直接播放 |
+| `{type: "asr_result", text: "..."}` | 实时语音识别中间结果 |
+| `{type: "asr_final", text: "..."}` | 语音识别最终结果 |
+| `{type: "response", ...}` | AI 文本回复（流式） |
+| `{type: "hangup"}` | 通话结束 |
+
+**链路：** 浏览器麦克风 → WebSocket 音频帧 → 后端 ASR → LLM → TTS → WebSocket 音频帧 → 浏览器播放
 
 已有基础：`SpeechDomainService` 接口已定义（`TextToSpeech`、`registerSpeechProcessor`），`TextToSpeechApplicationService` 已监听 `QuestionAnsweredEvent` 自动触发生成。`AudioQuestionDTO` 已定义但未被任何 Controller 引用。
 
@@ -697,6 +700,8 @@ data:complete
 
 ## 7. WebSocket 协议
 
+> **注意**：本项目纯文本聊天主要走 SSE（`POST /api/aiAssistant/streamGenerateReply`），不走 WebSocket。以下 WebSocket 协议为辅助通道，后端暂未完整实现，优先级较低。
+
 ### 端点
 
 ```
@@ -720,8 +725,6 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 }
 ```
 
-将助手存入 WebSocket Session 属性（key: `"aiAssistant"`），供后续 `generate` 使用。
-
 #### `generate` — 生成回复
 
 ```json
@@ -731,13 +734,11 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 }
 ```
 
-> **状态**：`generate` 的实际 LLM 调用被注释（`FrontEndWebSocketHandler:102 //todo`），WebSocket 通道暂不可用于对话。当前请使用 REST `POST /streamGenerateReply`。
+> **状态**：`generate` 的实际 LLM 调用被注释（`FrontEndWebSocketHandler:102 //todo`），当前请使用 SSE `POST /streamGenerateReply`。
 
 ### 服务端 → 客户端（Event）
 
 #### `chat_response` — 助手回复
-
-由 `QuestionAnsweredEvent` 领域事件触发：
 
 ```json
 {
@@ -747,11 +748,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 }
 ```
 
-> 注意：`chat_id` 硬编码为 `"1"`（`//todo`）。
-
 #### `repeat` — 回显用户输入
-
-由 `QuestionReceivedEvent` 领域事件触发：
 
 ```json
 {
@@ -759,16 +756,6 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
   "payload": "识别出的用户问题文本"
 }
 ```
-
-### 已知问题
-
-| 问题 | 位置 | 影响 |
-|------|------|------|
-| `afterConnectionClosed` 未实现 | `FrontEndWebSocketHandler:49` | Session 断连不清理，内存泄漏 |
-| `handleTransportError` 未实现 | `FrontEndWebSocketHandler:45` | 传输异常无处理 |
-| `generate` 的 LLM 调用被注释 | `FrontEndWebSocketHandler:102` | WebSocket 通道无法生成回复 |
-| `chat_id` 硬编码 `"1"` | `DomainEventListener:26` | 无法区分不同对话 |
-| Session 属性 key 不一致 | Interceptor: `userId.toString()` vs Handler: `"userId"` | 可能导致 Session 映射错误 |
 
 ---
 
@@ -778,10 +765,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 
 | 前端文件 | 方法 | 后端接口 | 状态 |
 |----------|------|----------|------|
-| `user.js` | `register()` | `POST /api/public/user/register` | 正常 |
-| `user.js` | `login()` | `POST /api/public/user/login` | 正常 |
-| `user.js` | `getVerificationCode()` | `POST /api/public/user/getVerificationCode` | 正常 |
-| `user.js` | `logout()` | `POST /api/public/user/logout` | 正常 |
+| `user.js` | `getUserInfo()` | `GET /api/public/user/info` | 正常 |
 | `assistant.js` | `add()` | `POST /api/aiAssistant/createNewAssistant` | 正常 |
 | `assistant.js` | `findAll()` | `GET /api/aiAssistant/aiAssistants` | 正常 |
 | `assistant.js` | `streamGenerateReply()` | `POST /api/aiAssistant/streamGenerateReply` | 正常 |
@@ -790,11 +774,8 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 | `assistant.js` | `delete()` | `DELETE /api/aiAssistant/deleteAssistant` | 正常 |
 | `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
 | `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
-| `knowledge.js` | `deleteKnowledgeBase()` | `DELETE /api/knowledge-base/{id}` | 正常 |
-| `assistant.js` | `modifyCommon()` | `POST /api/aiAssistant/modifyAssistantConfig` | 正常 |
-| `assistant.js` | `delete()` | `DELETE /api/aiAssistant/deleteAssistant` | 正常 |
-| `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
-| `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
+| `knowledge.js` | `getKnowledgeBase()` | `GET /api/knowledge-base/{id}` | 正常 |
+| `knowledge.js` | `modifyKnowledgeBase()` | `PUT /api/knowledge-base/{id}` | 正常 |
 | `knowledge.js` | `deleteKnowledgeBase()` | `DELETE /api/knowledge-base/{id}` | 正常 |
 | `knowledge.js` | `uploadFile()` | `POST /api/knowledge-base/{id}/file` | 正常 |
 | `knowledge.js` | `getKnowledgeBaseFiles()` | `GET /api/knowledge-base/{id}/file` | 正常 |
@@ -806,3 +787,63 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 | `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
 | `message.js` | `addMessages()` | `POST /api/aiAssistant/{id}/conversation` | 正常 |
 | `message.js` | `resetHistory()` | `DELETE /api/aiAssistant/{id}/conversation-log` | 正常 |
+
+---
+
+## 9. 尚未完成的接口
+
+### 9.1 WebSocket `/ws/chat` — 后端未完成（优先级低）
+
+> **说明**：纯文本聊天已走 SSE（`POST /api/aiAssistant/streamGenerateReply`），WebSocket 为辅助通道，暂不实现。
+
+文件: `backend/.../api/websocket/handler/FrontEndWebSocketHandler.java`
+
+| 方法 | 行号 | 状态 |
+|------|------|------|
+| `handleGenerateCommand` | L102 | LLM 调用被注释 |
+| `handlePingMessage` | L78 | 空实现 |
+| `handlePongMessage` | L81 | 空实现 |
+| `handleTransportError` | L45 | 空实现 |
+| `afterConnectionClosed` | L50 | Session 未注销 |
+| `afterConnectionEstablished` | L28 | 标记 todo |
+
+### 9.2 语音聊天 WebSocket — 待实现
+
+语音聊天走 WebSocket 直连 Java 后端（不走外部 WebRTC 服务）：
+
+```
+浏览器麦克风 → WebSocket 音频帧 → 后端 ASR → LLM → TTS → WebSocket 音频帧 → 浏览器播放
+```
+
+**待实现：**
+
+| 项目 | 说明 |
+|------|------|
+| 后端 `/ws/speech` | 新建 WebSocket 端点，处理音频二进制帧 + JSON 控制消息 |
+| ASR 集成 | 对接语音识别服务，处理实时音频流 |
+| TTS 集成 | 对接语音合成服务，返回音频流 |
+| 前端重构 | `webRTCAll.js` 改为 WebSocket 直传音频（不再使用 WebRTC PeerConnection） |
+
+已有基础：`SpeechDomainService` 接口已定义（`TextToSpeech`、`registerSpeechProcessor`），`AudioQuestionDTO` 已定义。
+
+**待清理的旧代码：**
+
+| 文件 | 说明 |
+|------|------|
+| `ExternalWebSocketHandler.java` | 外部语音服务 WebSocket 客户端，整体 `//todo` |
+| `ExternalSpeechDomainService.java` | `TextToSpeech` 方法标记 `//todo` |
+| `frontend/src/assets/js/webRTCAll.js` | 前端 WebRTC 客户端，改为 WebSocket 直传音频 |
+
+### 9.3 领域事件监听器 — 未完成
+
+文件: `backend/.../api/websocket/event/DomainEventListener.java`
+
+| 问题 | 行号 | 说明 |
+|------|------|------|
+| 类级别 `//todo` | L16 | 整体待完善 |
+| `chat_id` 硬编码 | L26 | `AnswerEvent` 的 `chat_id` 固定为 `"1"`，无法区分不同对话 |
+| `UserId` 类型 todo | L35 | `sendMessage` 调用处标记 `//todo UserId` |
+
+### 9.4 前端旧 WebSocket 代码 — 待清理
+
+`frontend/src/assets/js/websocket.js` 和 `sendCommands.js` 连接的 `ws://localhost:9090/ai_assistant/text_chat` 文本聊天服务已由 SSE 替代，相关旧代码待清理。
