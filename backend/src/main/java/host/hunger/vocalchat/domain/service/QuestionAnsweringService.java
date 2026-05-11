@@ -14,6 +14,7 @@ public interface QuestionAnsweringService {
     void streamingAnswerQuestionAsync(QuestionRequest request,
                                       AIAssistant aiAssistant,
                                       Consumer<String> onToken,
+                                      Consumer<String> onThinking,
                                       Consumer<String> onComplete,
                                       Consumer<Throwable> onError);
 }

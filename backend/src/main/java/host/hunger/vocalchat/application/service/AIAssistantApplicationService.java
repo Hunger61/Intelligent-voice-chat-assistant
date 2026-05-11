@@ -48,7 +48,8 @@ public class AIAssistantApplicationService {
                 .orElseThrow(() -> new BaseException(ErrorEnum.AI_ASSISTANT_NOT_FOUND));
     }
 
-    public void streamingAnswerQuestionAsync(String question, String aiAssistantId, Consumer<String> onToken,
+    public void streamingAnswerQuestionAsync(String question, String aiAssistantId, boolean enableOnlineSearch,
+            boolean enableDeepThinking, Consumer<String> onToken, Consumer<String> onThinking,
             Runnable onComplete, Consumer<Throwable> onError) {
         log.info("streamingAnswerQuestionAsync invoked: aiAssistantId={}, questionLen={}", aiAssistantId,
                 question == null ? 0 : question.length());
@@ -67,7 +68,7 @@ public class AIAssistantApplicationService {
                     log.warn("Failed to save user context before streaming; continuing", e);
                 }
 
-                QuestionRequest request = new QuestionRequest(dialogue.getDialogueContexts(), false);
+                QuestionRequest request = new QuestionRequest(dialogue.getDialogueContexts(), enableOnlineSearch, enableDeepThinking);
 
                 questionAnsweringService.streamingAnswerQuestionAsync(
                         request,
@@ -78,6 +79,14 @@ public class AIAssistantApplicationService {
                                     onToken.accept(token);
                             } catch (Exception e) {
                                 log.error("error in onToken handler", e);
+                            }
+                        },
+                        thinking -> {
+                            try {
+                                if (onThinking != null)
+                                    onThinking.accept(thinking);
+                            } catch (Exception e) {
+                                log.error("error in onThinking handler", e);
                             }
                         },
                         full -> {

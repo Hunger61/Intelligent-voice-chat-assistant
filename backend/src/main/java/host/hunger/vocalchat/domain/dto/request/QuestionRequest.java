@@ -11,4 +11,5 @@ import java.util.List;
 public class QuestionRequest {
     private List<DialogueContext> messages;
     private boolean enableOnlineSearch;
+    private boolean enableDeepThinking;
 }

@@ -20,6 +20,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
 @Service
@@ -27,9 +28,16 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 public class TencentQuestionAnsweringService implements QuestionAnsweringService {
 
     private final QwenStreamingChatModel qwenStreamingChatModel;
+    private final QwenStreamingChatModel qwenStreamingChatModelWithSearch;
+    private final QwenStreamingChatModel qwenStreamingChatModelWithThinking;
 
-    public TencentQuestionAnsweringService(@Qualifier("qwenStreamingChatModel") QwenStreamingChatModel qwenStreamingChatModel) {
+    public TencentQuestionAnsweringService(
+            @Qualifier("qwenStreamingChatModel") QwenStreamingChatModel qwenStreamingChatModel,
+            @Qualifier("qwenStreamingChatModelWithSearch") QwenStreamingChatModel qwenStreamingChatModelWithSearch,
+            @Qualifier("qwenStreamingChatModelWithThinking") QwenStreamingChatModel qwenStreamingChatModelWithThinking) {
         this.qwenStreamingChatModel = qwenStreamingChatModel;
+        this.qwenStreamingChatModelWithSearch = qwenStreamingChatModelWithSearch;
+        this.qwenStreamingChatModelWithThinking = qwenStreamingChatModelWithThinking;
     }
 
     @Override
@@ -44,7 +52,7 @@ public class TencentQuestionAnsweringService implements QuestionAnsweringService
 
     @Override
     public void streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant, Consumer<String> onToken,
-            Consumer<String> onComplete, Consumer<Throwable> onError) {
+            Consumer<String> onThinking, Consumer<String> onComplete, Consumer<Throwable> onError) {
         log.info("streamingAnswerQuestionAsync start for assistant={}, msgCount={}", aiAssistant.getId(),
                 request.getMessages() == null ? 0 : request.getMessages().size());
         
@@ -68,8 +76,15 @@ public class TencentQuestionAnsweringService implements QuestionAnsweringService
                     }
                 }
                 
-                log.info("Calling qwenStreamingChatModel.chat");
-                qwenStreamingChatModel.chat(chatMemory.messages(), new StreamingChatResponseHandler() {
+                QwenStreamingChatModel model = qwenStreamingChatModel;
+                if (request.isEnableDeepThinking()) {
+                    model = qwenStreamingChatModelWithThinking;
+                } else if (request.isEnableOnlineSearch()) {
+                    model = qwenStreamingChatModelWithSearch;
+                }
+                log.info("Calling qwenStreamingChatModel.chat, enableOnlineSearch={}, enableDeepThinking={}",
+                        request.isEnableOnlineSearch(), request.isEnableDeepThinking());
+                model.chat(chatMemory.messages(), new StreamingChatResponseHandler() {
                     @Override
                     public void onPartialResponse(String onPartialResponse) {
                         try {
@@ -82,6 +97,18 @@ public class TencentQuestionAnsweringService implements QuestionAnsweringService
                             if (onError != null) {
                                 onError.accept(t);
                             }
+                        }
+                    }
+
+                    @Override
+                    public void onPartialThinking(PartialThinking partialThinking) {
+                        try {
+                            if (partialThinking != null && partialThinking.text() != null
+                                    && onThinking != null) {
+                                onThinking.accept(partialThinking.text());
+                            }
+                        } catch (Throwable t) {
+                            log.warn("onPartialThinking handler threw", t);
                         }
                     }
 

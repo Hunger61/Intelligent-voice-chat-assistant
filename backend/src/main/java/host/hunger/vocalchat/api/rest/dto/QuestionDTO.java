@@ -8,4 +8,6 @@ import java.io.Serializable;
 public class QuestionDTO implements Serializable {
     private String question;
     private String aiAssistantId;
+    private boolean enableOnlineSearch;
+    private boolean enableDeepThinking;
 }

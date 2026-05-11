@@ -92,6 +92,7 @@ public class OllamaQuestionAnsweringService implements QuestionAnsweringService 
     @Override
     public void streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant,
                                              Consumer<String> onToken,
+                                             Consumer<String> onThinking,
                                              Consumer<String> onComplete,
                                              Consumer<Throwable> onError) {
         log.info("streamingAnswerQuestionAsync start for assistant={}, msgCount={}", aiAssistant.getId(), request.getMessages() == null ? 0 : request.getMessages().size());

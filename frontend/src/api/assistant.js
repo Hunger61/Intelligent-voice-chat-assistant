@@ -131,7 +131,7 @@ class AssistantService {
     return this._handleResponse(response);
   }
 
-  static async streamGenerateReply({ question, aiAssistantId, signal, onStarted, onToken, onFallback, onDone, onError }) {
+  static async streamGenerateReply({ question, aiAssistantId, enableOnlineSearch, enableDeepThinking, signal, onStarted, onToken, onFallback, onThinking, onDone, onError }) {
     const token = getAuthToken();
     const response = await fetch('/api/aiAssistant/streamGenerateReply', {
       method: 'POST',
@@ -141,7 +141,9 @@ class AssistantService {
       },
       body: JSON.stringify({
         question,
-        aiAssistantId
+        aiAssistantId,
+        enableOnlineSearch: enableOnlineSearch || false,
+        enableDeepThinking: enableDeepThinking || false
       }),
       signal
     });
@@ -168,6 +170,7 @@ class AssistantService {
       const payload = dataLines.join('\n');
       if (eventName === 'started' && onStarted) onStarted(payload);
       if (eventName === 'token' && onToken) onToken(payload);
+      if (eventName === 'thinking' && onThinking) onThinking(payload);
       if (eventName === 'fallback' && onFallback) onFallback(payload);
       if (eventName === 'done' && onDone) onDone(payload);
       if (eventName === 'error' && onError) onError(payload);

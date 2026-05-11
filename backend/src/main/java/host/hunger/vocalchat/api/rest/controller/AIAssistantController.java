@@ -60,10 +60,10 @@ public class AIAssistantController {
     @PostMapping(value = "/streamGenerateReply", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @OperateLog("流式生成回复")
     public SseEmitter streamGenerateReply(@RequestBody QuestionDTO questionDTO) {
-        return startStreaming(questionDTO.getQuestion(), questionDTO.getAiAssistantId());
+        return startStreaming(questionDTO.getQuestion(), questionDTO.getAiAssistantId(), questionDTO.isEnableOnlineSearch(), questionDTO.isEnableDeepThinking());
     }
 
-    private SseEmitter startStreaming(String question, String aiAssistantId) {
+    private SseEmitter startStreaming(String question, String aiAssistantId, boolean enableOnlineSearch, boolean enableDeepThinking) {
         SseEmitter emitter = createEmitter();
         try {
             log.debug("[SSE] invoking application service streamingAnswerQuestionAsync (POST)");
@@ -72,6 +72,8 @@ public class AIAssistantController {
             aiAssistantApplicationService.streamingAnswerQuestionAsync(
                     question,
                     aiAssistantId,
+                    enableOnlineSearch,
+                    enableDeepThinking,
                     token -> {
                         try {
                             log.debug("[SSE] token callback invoked (POST), tokenLength={}", token == null ? 0 : token.length());
@@ -82,6 +84,13 @@ public class AIAssistantController {
                             }
                         } catch (Exception e) {
                             log.error("[SSE] exception inside token callback (POST)", e);
+                        }
+                    },
+                    thinking -> {
+                        try {
+                            sendSafe(emitter, SseEmitter.event().name("thinking").data(thinking == null ? "" : thinking));
+                        } catch (Exception e) {
+                            log.error("[SSE] exception inside thinking callback (POST)", e);
                         }
                     },
                     () -> {

@@ -1,6 +1,7 @@
 package host.hunger.vocalchat.infrastructure.config;
 
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
+import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +35,30 @@ public class QwenLlmConfig {
                 .isMultimodalModel(true)
                 .baseUrl(apiMultipleUrl)
                 .apiKey(apiKey)
+                .build();
+    }
+
+    @Bean("qwenStreamingChatModelWithSearch")
+    public QwenStreamingChatModel qwenStreamingChatModelWithSearch() {
+        return QwenStreamingChatModel.builder()
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .baseUrl(apiMultipleUrl)
+                .apiKey(apiKey)
+                .enableSearch(true)
+                .build();
+    }
+
+    @Bean("qwenStreamingChatModelWithThinking")
+    public QwenStreamingChatModel qwenStreamingChatModelWithThinking() {
+        return QwenStreamingChatModel.builder()
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .baseUrl(apiMultipleUrl)
+                .apiKey(apiKey)
+                .defaultRequestParameters(QwenChatRequestParameters.builder()
+                        .enableThinking(true)
+                        .build())
                 .build();
     }
 }

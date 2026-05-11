@@ -224,10 +224,10 @@
                       </div>
                       <template v-if="message.type === 'ai'">
                         <div
-                          class="p-4 rounded-lg leading-5 bg-gray-50 border border-gray-100 shadow-sm max-h-36 overflow-y-auto relative   mb-3"
+                          class="p-3 rounded-lg leading-5 bg-gray-100/60 border border-dashed border-gray-300 max-h-36 overflow-y-auto relative mb-3 opacity-75"
                           v-if="typeof message.deepcontent === 'string' && message.deepcontent.trim() !== ''">
-                          <div class="text-sm text-gray-500 mb-2 font-medium">深度思考</div>
-                          <div class="text-gray-800 whitespace-pre-wrap text-xs">
+                          <div class="text-xs text-gray-400 mb-1 font-medium">💭 深度思考</div>
+                          <div class="text-gray-500 whitespace-pre-wrap text-xs italic">
                             {{ message.deepcontent }}
                           </div>
                         </div>
@@ -328,12 +328,12 @@
                       </div>
                       <!-- 深度思考内容（带滚动条） -->
                       <div
-                        class="p-4 rounded-lg leading-5 bg-gray-50 border border-gray-100 shadow-sm relative   mb-3"
+                        class="p-3 rounded-lg leading-5 bg-gray-100/60 border border-dashed border-gray-300 relative mb-3 opacity-75"
                         v-if="store.getters.getTextMessageContent &&
                           typeof store.getters.getTextMessageContent.deepcontent === 'string' &&
                           store.getters.getTextMessageContent.deepcontent.trim() !== ''">
-                        <div class="text-sm text-gray-500 mb-2 font-medium">深度思考</div>
-                        <div class="text-gray-800 whitespace-pre-wrap text-xs  max-h-36 overflow-y-auto"  ref="deepContentRef">
+                        <div class="text-xs text-gray-400 mb-1 font-medium">💭 深度思考</div>
+                        <div class="text-gray-500 whitespace-pre-wrap text-xs italic max-h-36 overflow-y-auto" ref="deepContentRef">
                           {{ store.getters.getTextMessageContent.deepcontent }}
                         </div>
                       </div>
@@ -371,7 +371,7 @@
                 </div>
 
                 <div @click="toggleOnline()" id="online" :class="[' w-24 h-8 rounded-2xl flex text-xs justify-center items-center mx-1 cursor-pointer shadow-md Bottom-touch-effect  ',
-                  isOnline ? 'bg-blue-400' : 'bg-white']">
+                  store.getters.getIsOnline ? 'bg-blue-400' : 'bg-white']">
                   <svg width="18" height="18" class=" mr-1" viewBox="0 0 20 20" fill="none"
                     xmlns="http://www.w3.org/2000/svg">
                     <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.8"></circle>
@@ -382,7 +382,7 @@
                 </div>
 
                 <div @click="toggleDeep()" id="deep" :class="[' w-24 h-8 rounded-2xl flex text-xs justify-center items-center mx-1 cursor-pointer shadow-md Bottom-touch-effect  ',
-                  isDeep ? 'bg-blue-400' : 'bg-white']">
+                  store.getters.getIsDeepThink ? 'bg-blue-400' : 'bg-white']">
                   <svg width="18" height="18" viewBox="0 0 20 20" fill="none" class=" mr-1"
                     xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -485,7 +485,6 @@ const localKonwId = ref('')
 const belocalKonwId = ref('')
 // State
 const isBound = ref(false)   //知识库是否开启
-const isDeep = ref(false)
 const showModal = ref(false);  //蒙板显示
 const isEditing = ref(true); //编辑和确认是否可选中
 const userInput = ref('');  //用户输入信息
@@ -761,7 +760,7 @@ const handleBindKnowledgeBase = () => {
   isBound.value = !isBound.value
 }
 const toggleDeep = () => {
-  isDeep.value = !isDeep.value
+  store.commit('setIsDeepThink', !store.getters.getIsDeepThink);
 }
 //修改知识库
 const changeKonw = async () => {
@@ -861,12 +860,21 @@ const sendtoChat = async () => {
     await AssistantService.streamGenerateReply({
       question,
       aiAssistantId: currentAssistantId,
+      enableOnlineSearch: store.getters.getIsOnline,
+      enableDeepThinking: store.getters.getIsDeepThink,
       signal: activeStreamController.signal,
       onToken: (token) => {
         store.commit('setTextMessageContent', {
           chat_id: 0,
           play_id: playId,
           content: token || ''
+        });
+      },
+      onThinking: (thinking) => {
+        store.commit('setTextMessageContent', {
+          chat_id: -2,
+          play_id: playId,
+          content: thinking || ''
         });
       },
       onDone: () => {
@@ -942,9 +950,8 @@ shakeTimeout = setTimeout(() => {
     localCharacter.value = assistant.value.character || ''
   }, 1000);
 };
-const isOnline = ref(false)
 const toggleOnline = () => {
-  isOnline.value = !isOnline.value
+  store.commit('setIsOnline', !store.getters.getIsOnline);
 };
 
 
@@ -972,9 +979,9 @@ const restart = () => {
   clickMessage.value = false;
   issuccess.value = false;
   isErr.value = false;
-  isOnline.value = false
+  store.commit('setIsOnline', false)
+  store.commit('setIsDeepThink', false)
   isBound.value = false
-  isDeep.value = false
   resetConversation()
 }
 </script>

@@ -27,6 +27,7 @@ const store = createStore({
         isHaveVoice: false,  //是否静音
         isStartKnow: false,  //是否启用知识库
         isOnline: false,//是否联网搜索
+        isDeepThink: false,//是否深度思考
 
         isHaveNewMessage: false, //是否在发送新的聊天消息
         isHaveTextMessage: false, //是否在发送新的聊天消息
@@ -50,6 +51,9 @@ const store = createStore({
 
         setIsOnline(state, isOnline) {
             state.isOnline = isOnline
+        },
+        setIsDeepThink(state, isDeepThink) {
+            state.isDeepThink = isDeepThink
         },
         setSpeaker(state, speaker) {
             state.speaker = speaker
@@ -133,8 +137,6 @@ const store = createStore({
                     if (typeof txetMessageContent.content === 'string') {
                         state.txetMessageContent.deepcontent += txetMessageContent.content.trim();
                     }
-                    console.log("ai:",txetMessageContent)
-                    console.log(state.txetMessageContent)
                     return
                 }
                 if (state.txetMessageContent.play_id == txetMessageContent.play_id) {
@@ -150,7 +152,6 @@ const store = createStore({
 
             // 3. 现有消息不存在：直接赋值
             state.txetMessageContent = txetMessageContent;
-            console.log("kkkkkkkkkkkkkkkk", state.txetMessageContent )
             return;
         },
         setTextMessageTime(state, message) {
@@ -634,6 +635,7 @@ const store = createStore({
         getIsHaveVoice: state => state.isHaveVoice,
         getIsStartKnow: state => state.isStartKnow,
         getIsOnline: state => state.isOnline,
+        getIsDeepThink: state => state.isDeepThink,
         getIsbackGround: state => state.isbackGround,
 
         getCurrentAssistant: state => state.currentClickedAssistant,
