@@ -999,27 +999,32 @@ onBeforeMount(async () => {
   try {
     const SeId = store.getters.getSelectedId
     isLoading.value = true
-    const response = await AssistantService.findAll();
-    const assistants = response.data || [];
-    store.commit('setAssistants', assistants)
-    // 同步到本地助手列表
-    localAssistants.value = store.getters.getAllAssistants;
-    for (let i = 0; i < assistants.length; i++) {
-      const history = assistants[i].messageHistory || []
-      store.commit('setNewMessagebyId', {
-        id: assistants[i].id,
-        data: history
-      })
 
-      if (SeId === assistants[i].id) {
-        messageHeight.value = history.length
+    let assistants = store.getters.getAllAssistants;
+    if (!assistants || assistants.length === 0) {
+      const response = await AssistantService.findAll();
+      assistants = response.data || [];
+      store.commit('setAssistants', assistants)
+      for (let i = 0; i < assistants.length; i++) {
+        const history = assistants[i].messageHistory || []
+        store.commit('setNewMessagebyId', {
+          id: assistants[i].id,
+          data: history
+        })
       }
     }
-    if (SeId === 0 && store.getters.getAllAssistants.length > 0) {
-      store.commit('setSelectedId', store.getters.getAllAssistants[0].id);
-      messageHeight.value = (store.getters.getAllAssistants[0].messageHistory || []).length
-    } else if (SeId === 0) {
-    } else {
+
+    localAssistants.value = assistants;
+    for (let i = 0; i < assistants.length; i++) {
+      if (SeId === assistants[i].id) {
+        messageHeight.value = (assistants[i].messageHistory || []).length
+        break
+      }
+    }
+    if (SeId === 0 && assistants.length > 0) {
+      store.commit('setSelectedId', assistants[0].id);
+      messageHeight.value = (assistants[0].messageHistory || []).length
+    } else if (SeId !== 0) {
       store.commit('setSelectedId', SeId);
     }
 
@@ -1053,7 +1058,7 @@ const addAssistant = async () => {
   isAdding.value = true
   try {
     // 2. 调用Service层
-    await AssistantService.add({
+    const result = await AssistantService.add({
       userId: store.getters.getUser.id,
       name: newAssistant.value.name.trim(),
       description: newAssistant.value.description?.trim() || '',
@@ -1061,9 +1066,17 @@ const addAssistant = async () => {
       knowledge_base_id: ""
     });
 
-    const assistantsResponse = await AssistantService.findAll();
-    const assistants = assistantsResponse.data || assistantsResponse;
-    store.commit('setAssistants', assistants)
+    const assistants = store.getters.getAllAssistants;
+    const newId = result?.data || result;
+    assistants.push({
+      id: typeof newId === 'string' ? newId : '',
+      name: newAssistant.value.name.trim(),
+      description: newAssistant.value.description?.trim() || '',
+      character: newAssistant.value.character?.trim() || '你是一个AI语音助手',
+      messageHistory: []
+    });
+    store.commit('setAssistants', [...assistants]);
+    localAssistants.value = assistants;
 
     // 重置表单
     newAssistant.value = {

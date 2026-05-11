@@ -234,8 +234,7 @@
 
                         <!-- 普通内容 -->
                         <div class="p-4 rounded-lg leading-5 bg-white border border-gray-100 shadow-sm">
-                          <div class="text-gray-800 whitespace-pre-wrap">
-                            {{ message.content }}
+                          <div class="text-gray-800 markdown-body" v-html="renderMarkdown(message.content)">
                           </div>
                         </div>
                       </template>
@@ -343,8 +342,7 @@
                       <div class="p-4 rounded-lg leading-5 bg-white border border-gray-100 shadow-sm" v-if="store.getters.getTextMessageContent &&
                         typeof store.getters.getTextMessageContent.content === 'string' &&
                         store.getters.getTextMessageContent.content.trim() !== ''">
-                        <div class="text-gray-800 whitespace-pre-wrap">
-                          {{ store.getters.getTextMessageContent.content }}
+                        <div class="text-gray-800 markdown-body" v-html="renderMarkdown(store.getters.getTextMessageContent.content)">
                         </div>
                       </div>
                     </div>
@@ -355,7 +353,7 @@
 
             <!-- Input Area -->
             <div class="h-24 bg-white p-1 rounded-2xl pb-7 border relative  ">
-              <textarea v-model="userInput" @keyup.enter="sendtoChat" @input="updateCharacterCount"
+              <textarea v-model="userInput" @keydown.enter.prevent="sendtoChat" @input="updateCharacterCount"
                 class="w-full h-full p-2 border-gray-300 rounded resize-none focus:outline-none cursor-text hover:cursor-pointer focus:cursor-auto"
                 placeholder="请输入消息..." maxlength="120"></textarea>
 
@@ -469,9 +467,11 @@ import { RotateCcw } from 'lucide-vue-next';  //图形库依赖
 import { useRouter } from 'vue-router'  //路由依赖
 import { useStore } from 'vuex'  //全局变量依赖
 import AssistantService from '../api/assistant.js';  //ai助手增删改查的api调用封装
+import MessageService from '../api/message.js';
 import { issuccess, isErr, isErrMessage, issuccessMessage, showSuccessMessage, clickMessage } from '../assets/js/showErrOrTrue.js'; //成功失败消息提示
 import { initPhysics, addNewObject } from '../assets/js/textMatter.js'; //小方块
 import { createMieAnimation } from '../assets/js/miemie.js';//小羊
+import { renderMarkdown } from '../utils/markdown.js';
 
 const store = useStore() //引入全局变量
 const router = useRouter()//路由
@@ -650,7 +650,9 @@ onMounted(() => {
   
   // 加载聊天记录
   if (assistantId.value && assistantId.value !== 0) {
-    AssistantService.getConversationLog(assistantId.value)
+    const cached = store.getters.getRTMbyId(assistantId.value);
+    if (!cached.messages || cached.messages.length === 0) {
+      AssistantService.getConversationLog(assistantId.value)
       .then(response => {
         
         // 处理后端返回的格式
@@ -717,6 +719,7 @@ onMounted(() => {
       .catch(error => {
         console.error('获取聊天记录失败:', error);
       });
+    }
   } else {
     console.log('assistantId为空或0，跳过获取聊天记录');
   }
@@ -730,7 +733,6 @@ onUnmounted(() => {
     activeStreamController.abort();
     activeStreamController = null;
   }
-  store.commit('clearRTMbyId', store.getters.getSelectedId)
   store.commit('clearTextMessageContent')
   store.commit('clearNowTime')
 });
@@ -845,6 +847,8 @@ const sendtoChat = async () => {
   store.commit('setIsHaveTextMessage', true)
   store.commit('setIsTextChat', true)
   store.commit('clearTextMessageContent')
+  userInput.value = '';
+  characterCount.value = 0;
 
   nextTick(() => {
     if (scrollContainer.value) {
@@ -896,16 +900,18 @@ const sendtoChat = async () => {
     store.commit('setIsTextChat', false);
     activeStreamController = null;
   }
-
-  userInput.value = '';
-  characterCount.value = 0;
 };
 
 //重置对话
-const resetConversation = () => {
+const resetConversation = async () => {
   if (activeStreamController) {
     activeStreamController.abort();
     activeStreamController = null;
+  }
+  try {
+    await MessageService.resetHistory(store.getters.getSelectedId);
+  } catch (e) {
+    console.error('重置对话失败:', e);
   }
   store.commit('clearRTMbyId', store.getters.getSelectedId)
   store.commit('clearTextMessageContent')
@@ -1051,4 +1057,25 @@ const restart = () => {
   font-variation-settings: normal;
   /* Chrome 140 以下版本需要 */
 }
+</style>
+
+<style>
+.markdown-body h1 { font-size: 1.5em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.markdown-body h2 { font-size: 1.3em; font-weight: 700; margin: 0.5em 0 0.25em; }
+.markdown-body h3 { font-size: 1.15em; font-weight: 600; margin: 0.4em 0 0.2em; }
+.markdown-body p { margin: 0.4em 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 1.5em; margin: 0.3em 0; }
+.markdown-body li { margin: 0.15em 0; }
+.markdown-body code { background: #f1f5f9; padding: 0.15em 0.35em; border-radius: 3px; font-size: 0.9em; }
+.markdown-body pre { background: #1e293b; color: #e2e8f0; padding: 0.8em 1em; border-radius: 6px; overflow-x: auto; margin: 0.5em 0; }
+.markdown-body pre code { background: none; padding: 0; color: inherit; }
+.markdown-body blockquote { border-left: 3px solid #3b82f6; padding-left: 0.8em; color: #64748b; margin: 0.4em 0; }
+.markdown-body table { border-collapse: collapse; margin: 0.4em 0; width: 100%; }
+.markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 0.4em 0.6em; text-align: left; }
+.markdown-body th { background: #f8fafc; font-weight: 600; }
+.markdown-body strong { font-weight: 700; }
+.markdown-body em { font-style: italic; }
+.markdown-body a { color: #3b82f6; text-decoration: underline; }
+.markdown-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 0.8em 0; }
+.markdown-body img { max-width: 100%; border-radius: 4px; }
 </style>
