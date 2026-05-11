@@ -39,7 +39,7 @@
             </div>
         </div>
         <!-- 头部 -->
-        <div class="pb-4 pl-5 border-b border-gray-300">
+        <div class="pb-4 pl-5 pr-5 border-b border-gray-300 relative">
             <h2 class="mt-2 text-xl font-medium flex  items-center webfont">
                 <svg @click="goBack" t="1752904862514" class="icon   w-6 h-6 mr-1 hover:cursor-pointer "
                     viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6359" width="200"
@@ -54,6 +54,11 @@
             <p class="my-2 text-xs text-gray-600 ">
                 提供一站式的智能语音解决方案，基于大语言模型全面升级NLP能力，显著降低运营成本与门槛。
             </p>
+            <button @click="handleLogout" class="absolute right-5 top-3 p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 active:scale-95" title="退出登录">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+              </svg>
+            </button>
               <div class="iframe-container">
             <iframe ref="bongoIframe" src="/static/bongo.cat-master/index.html" frameborder="0" allowfullscreen
               class="bongo-iframe" @load="onIframeLoaded"></iframe>
@@ -390,9 +395,14 @@
                                             查看任务
                                         </button>
                                         <button
+                                            class="px-3 py-1 bg-green-500   text-white rounded hover:bg-green-600 transition-colors cursor-pointer"
+                                            @click="openEditKnowledge(knowledge)">
+                                            改信息
+                                        </button>
+                                        <button
                                             class="px-3 py-1 bg-yellow-500   text-white rounded hover:bg-yellow-600 transition-colors cursor-pointer"
                                             @click="toChooseKonws(knowledge.knowledge_base_id);">
-                                            编辑
+                                            管文件
                                         </button>
                                         <button
                                             class="px-3 py-1 bg-red-500   text-white rounded hover:bg-red-600 transition-colors cursor-pointer"
@@ -807,22 +817,17 @@
 
         <div v-show="showModal" id="cover"
             class="fixed inset-0 bg-black/30 flex items-center justify-center z-30 backdrop-blur-sm transition-opacity duration-300"
-            @click="showModal = false; showD = false">
-            <!-- 模态框容器（阻止事件冒泡） -->
+            @click="showModal = false; showD = false; showE = false">
+            <!-- 删除确认面板 -->
             <div v-if="showD"
                 class="addBox w-96 bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-100 opacity-100"
                 @click.stop>
-                <!-- 标题区域 -->
                 <div class="p-6 border-b">
                     <h3 class="title text-xl font-semibold text-gray-800 text-center">确认删除</h3>
                 </div>
-
-                <!-- 内容区域（可根据需要添加删除提示文本） -->
                 <div class="p-6 text-center text-gray-600">
                     <p>此操作不可撤销，确定要删除吗？</p>
                 </div>
-
-                <!-- 按钮区域 -->
                 <div class="px-6 pb-6 pt-2 flex justify-center gap-4">
                     <button @click="showModal = false; showD = false"
                         class="cancel px-6 py-2.5 mr-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg  touch-effectBox transition-colors ">
@@ -834,18 +839,53 @@
                     </button>
                 </div>
             </div>
+            <!-- 编辑知识库信息面板 -->
+            <div v-if="showE"
+                class="addBox w-[28rem] bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all duration-300 scale-100 opacity-100"
+                @click.stop>
+                <div class="p-6 border-b">
+                    <h3 class="title text-xl font-semibold text-gray-800">修改知识库信息</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">知识库名称*</label>
+                        <input v-model="editKbForm.name" type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            placeholder="请输入知识库名称" maxlength="20" />
+                        <p class="text-xs text-gray-500 mt-1">{{ editKbForm.name.length }}/20</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">知识库描述</label>
+                        <textarea v-model="editKbForm.description"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                            placeholder="请输入知识库描述" maxlength="1000"></textarea>
+                        <p class="text-xs text-gray-500 mt-1">{{ editKbForm.description.length }}/1000</p>
+                    </div>
+                </div>
+                <div class="px-6 pb-6 pt-2 flex justify-end gap-3">
+                    <button @click="showModal = false; showE = false"
+                        class="cancel px-6 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg touch-effectBox transition-colors hover:bg-gray-200">
+                        取消
+                    </button>
+                    <button @click="submitEditKnowledge"
+                        class="sure px-6 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-lg touch-effectBox transition-colors hover:bg-blue-600 active:scale-95">
+                        确认修改
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive, nextTick, watch } from 'vue' //vue
+import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch } from 'vue' //vue
 import { useRoute, useRouter } from 'vue-router'  //路由依赖
 import KnowledgeService from '../api/knowledge';
 import { useStore } from 'vuex'
 import { createMieAnimation } from '../assets/js/miemie.js';
 import { issuccess, isErr, isErrMessage, issuccessMessage, showSuccessMessage, showErrMessage } from '../assets/js/showErrOrTrue.js'; //成功失败消息提示
+import UserApi from '../api/user.js';
 const store = useStore()
 const router = useRouter()
 // 创建元素引用
@@ -855,7 +895,14 @@ const mieAnimation = createMieAnimation(mie);
 
 const showModal = ref(false)
 const showD = ref(false)
+const showE = ref(false)
 const functionD = ref(null)  // 用于存储要执行的函数
+
+const editKbForm = reactive({
+    id: '',
+    name: '',
+    description: ''
+});
 
 // 保存函数并显示确认框
 const deleteFun = (fun) => {
@@ -976,6 +1023,10 @@ onMounted(() => {
     fetchKnowledges()
       setupEventListeners()
     emit('page-loaded')
+})
+
+onUnmounted(() => {
+    mieAnimation.destroy()
 })
 
 let timer = null // 用于存储定时器实例
@@ -1533,6 +1584,52 @@ const toDeleteKonwledge = async (id) => {
     }
 }
 
+const openEditKnowledge = async (knowledge) => {
+    try {
+        const response = await KnowledgeService.getKnowledgeBase(knowledge.knowledge_base_id);
+        if (response.success && response.data) {
+            editKbForm.id = knowledge.knowledge_base_id;
+            editKbForm.name = response.data.name || knowledge.name || '';
+            editKbForm.description = response.data.description || '';
+        } else {
+            editKbForm.id = knowledge.knowledge_base_id;
+            editKbForm.name = knowledge.name || '';
+            editKbForm.description = '';
+        }
+    } catch {
+        editKbForm.id = knowledge.knowledge_base_id;
+        editKbForm.name = knowledge.name || '';
+        editKbForm.description = '';
+    }
+    showModal.value = true;
+    showE.value = true;
+};
+
+const submitEditKnowledge = async () => {
+    if (!editKbForm.name.trim()) {
+        showErrMessage('请填写知识库名称');
+        return;
+    }
+    try {
+        const response = await KnowledgeService.modifyKnowledgeBase(
+            editKbForm.id,
+            editKbForm.name.trim(),
+            editKbForm.description.trim()
+        );
+        if (response.success) {
+            showSuccessMessage('修改知识库成功');
+            showModal.value = false;
+            showE.value = false;
+            fetchKnowledges();
+        } else {
+            showErrMessage(response.message || '修改知识库失败');
+        }
+    } catch (error) {
+        console.error('修改知识库异常:', error);
+        showErrMessage('修改知识库失败');
+    }
+};
+
 const toChooseKonws = async (id) => {
     isLoading.value = true;
     try {
@@ -1760,6 +1857,11 @@ const goBack = () => {
     })
 }
 
+const handleLogout = async () => {
+    await UserApi.logout();
+    store.commit('clearUser');
+    router.push('/');
+};
 
 // 监听 select.value 的变化，动态切换定时器
 watch(

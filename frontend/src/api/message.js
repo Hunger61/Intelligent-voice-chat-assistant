@@ -2,29 +2,6 @@ import { getAuthToken } from './auth.js';
 
 class MessageService {
   /**
-   * 批量添加聊天历史记录
-   * @param {string} assistantId - 助手ID
-   * @param {Array<Array<string>>} messages - 消息数组，每条为 [role, content]
-   */
-  static async addMessages(assistantId, messages) {
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`/api/aiAssistant/${assistantId}/conversation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Token: token } : {})
-        },
-        body: JSON.stringify({ messages })
-      });
-      return this._handleResponse(response);
-    } catch (error) {
-      console.error('Error adding messages:', error);
-      throw error;
-    }
-  }
-
-  /**
    * 分页查询聊天记录（按ID降序，最新在前）
    * @param {string} assistantId - 助手ID
    * @param {number} size - 每页大小

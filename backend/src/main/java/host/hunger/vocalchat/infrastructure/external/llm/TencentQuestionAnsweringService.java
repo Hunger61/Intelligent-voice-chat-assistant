@@ -41,16 +41,6 @@ public class TencentQuestionAnsweringService implements QuestionAnsweringService
     }
 
     @Override
-    public String answerQuestion(QuestionRequest request, AIAssistant aiAssistant) {
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<String> answerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant) {
-        return null;
-    }
-
-    @Override
     public void streamingAnswerQuestionAsync(QuestionRequest request, AIAssistant aiAssistant, Consumer<String> onToken,
             Consumer<String> onThinking, Consumer<String> onComplete, Consumer<Throwable> onError) {
         log.info("streamingAnswerQuestionAsync start for assistant={}, msgCount={}", aiAssistant.getId(),

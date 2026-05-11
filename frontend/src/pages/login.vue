@@ -288,13 +288,7 @@ const submitForm = async () => {
             store.commit('setUser', { id: response.data.id, name: response.data.name });
             console.log('登录成功', store.getters.getUser);
 
-            photobox.interactive = true
-            issuccessLogin.value = false
-            // 登录成功后初始化photobox，此时canvas元素已经显示
-            setTimeout(() => {
-                photobox.init();
-            }, 100);
-            //    router.push('/home_page');
+            router.push('/home_page');
         } else {
             console.log('注册提交:', form.value);
             const response = await UserService.register({
