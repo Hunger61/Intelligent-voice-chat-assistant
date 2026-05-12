@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useStore } from 'vuex'
 import HomePage from '../pages/homePage.vue';
-import TextPage from '../pages/textPage.vue'
 import LoginPage from '../pages/login.vue'
 import konwPage from '../pages/konwPage.vue'
 import UserService from '../api/user.js';
@@ -28,24 +27,6 @@ const routes = [
     name: 'xxxPage',
     component: xxxPage
   },
-  {
-    path: '/robot_test',
-    name: 'text',
-    component: TextPage,
-    // 路由独享守卫
-    beforeEnter: (to, from, next) => {
-      const store = useStore()
-      const assistantId = store.getters.getSelectedId
-      const assistant = store.getters.getAssistantById(assistantId)
-
-      if (!assistant || Object.keys(assistant).length === 0) {
-        console.log('Assistant数据不存在，重定向到首页')
-        next({ name: 'homePage' })
-      } else {
-        next()
-      }
-    }
-  }
 ]
 
 const router = createRouter({

@@ -1853,7 +1853,7 @@ const handleCancel = () => {
 
 const goBack = () => {
     nextTick(() => {
-        router.push('/robot_test')
+        router.push('/home_page')
     })
 }
 

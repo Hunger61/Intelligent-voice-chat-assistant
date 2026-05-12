@@ -51,6 +51,9 @@
       <div class="header border-b border-gray-300 pb-4 pl-5 pr-5 relative">
         <h2 class="text-xl font-medium mt-3 webfont">智能语音机器人</h2>
         <p class="text-xs mt-2 text-gray-600">提供一站式的智能语音解决方案，基于大语言模型全面升级nlp能力，显著降低运营成本与门槛。</p>
+        <button @click="router.push('/konw_page')" class="absolute right-16 top-3 px-3 py-1.5 rounded-lg text-sm text-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 active:scale-95" title="知识库管理">
+          知识库
+        </button>
         <button @click="handleLogout" class="absolute right-5 top-3 p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 active:scale-95" title="退出登录">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
@@ -104,6 +107,16 @@
                           d="M787.690667 236.842667a42.666667 42.666667 0 0 1 1.642666 11.733333v81.92a42.666667 42.666667 0 0 1-30.933333 41.002667L554.666667 429.696V682.666667a149.333333 149.333333 0 0 1-144.213334 149.248L405.333333 832a149.333333 149.333333 0 1 1 85.354667-271.872L490.666667 298.666667h1.386666a42.666667 42.666667 0 0 1 29.568-30.165334l213.333334-60.970666a42.666667 42.666667 0 0 1 52.736 29.312z"
                           fill="#FFFFFF" p-id="5295"></path>
                       </svg>
+                      <svg t="1752824184119"
+                        @click="showModal = true; showC = true; selectAndChangeAssistant(assistant); fetchKnowledgeBases()"
+                        class="setting icon w-4 h-4 ml-2 touch-effect" viewBox="0 0 1024 1024" version="1.1"
+                        xmlns="http://www.w3.org/2000/svg" p-id="16138" id="mx_n_1752824184120" width="200"
+                        height="200">
+                        <title>设置</title>
+                        <path
+                          d="M416.536774 33.296516c60.482065-11.230968 123.375484-11.230968 185.244903 0.825807a186.103742 186.103742 0 0 0 93.481291 164.005161 186.103742 186.103742 0 0 0 188.779355-1.024 496.408774 496.408774 0 0 1 93.349161 160.008258 181.644387 181.644387 0 0 0-95.198968 160.933161c0.330323 69.565935 39.506581 130.34529 96.949678 161.957162a486.433032 486.433032 0 0 1-91.796646 158.984258c-56.088774-33.957161-128.29729-37.458581-188.746322-2.972904a181.644387 181.644387 0 0 0-91.763613 162.915097c-60.482065 11.197935-123.375484 11.230968-185.244903-0.858839a186.103742 186.103742 0 0 0-93.481291-164.005161 186.103742 186.103742 0 0 0-188.779354 1.057032 496.408774 496.408774 0 0 1-93.349162-160.008258 181.644387 181.644387 0 0 0 95.198968-160.933161c-0.330323-69.598968-39.506581-130.34529-96.98271-161.957161 9.909677-28.605935 22.693161-56.683355 38.383484-83.868903A486.433032 486.433032 0 0 1 136.026839 193.23871c56.088774 33.957161 128.29729 37.491613 188.746322 3.005935a181.644387 181.644387 0 0 0 91.763613-162.915097z m3.369291 641.816774c88.856774 51.299097 201.992258 21.702194 252.696774-66.097548 50.671484-87.799742 19.75329-200.571871-69.136516-251.904-88.856774-51.299097-201.992258-21.702194-252.696775 66.064516-50.704516 87.832774-19.75329 200.604903 69.136517 251.904z"
+                          fill="#f9a303" p-id="16139"></path>
+                      </svg>
                       <svg t="1752823832754"
                         @click="showModal = true; showD = true; store.commit('setSelectedId', assistant.id)"
                         class="remove w-4 h-4 ml-2 icon touch-effect  " viewBox="0 0 1024 1024" version="1.1"
@@ -112,24 +125,6 @@
                         <path
                           d="M781.28 851.36a58.56 58.56 0 0 1-58.56 58.56H301.28a58.72 58.72 0 0 1-58.56-58.56V230.4h538.56z m-421.6-725.92a11.84 11.84 0 0 1 12-12h281.28a11.84 11.84 0 0 1 12 12V160H359.68zM956.8 160H734.72v-34.56a81.76 81.76 0 0 0-81.76-81.76H371.68a82.08 82.08 0 0 0-81.76 81.76V160H67.2a35.36 35.36 0 0 0 0 70.56h105.12v620.8a128.96 128.96 0 0 0 128.96 128.96h421.44a128.96 128.96 0 0 0 128.96-128.96V230.4H956.8a35.2 35.2 0 0 0 35.2-35.2 34.56 34.56 0 0 0-35.2-35.2zM512 804.16a35.2 35.2 0 0 0 35.2-35.36V393.92a35.2 35.2 0 1 0-70.4 0V768.8a35.2 35.2 0 0 0 35.2 35.36m-164.32 0a35.36 35.36 0 0 0 35.36-35.36V393.92a35.36 35.36 0 1 0-70.56 0V768.8a36.32 36.32 0 0 0 35.2 35.36m328.64 0a35.36 35.36 0 0 0 35.2-35.36V393.92a35.36 35.36 0 1 0-70.56 0V768.8a35.36 35.36 0 0 0 35.36 35.36"
                           fill="#D81E06" p-id="13830"></path>
-                      </svg>
-                      <svg t="1752823999774"
-                        @click="showModal = true; showC = true; selectAndChangeAssistant(assistant)"
-                        class="remove w-4 h-4 ml-2 icon touch-effect  " viewBox="0 0 1024 1024" version="1.1"
-                        xmlns="http://www.w3.org/2000/svg" p-id="14821" width="200" height="200">
-                        <title>修改</title>
-                        <path
-                          d="M994.72 973.44A39.84 39.84 0 0 1 960.8 992H80a39.84 39.84 0 0 1-33.92-18.4 34.4 34.4 0 0 1 0-36.64A40.16 40.16 0 0 1 80 918.24h880a39.84 39.84 0 0 1 34.08 18.4 34.08 34.08 0 0 1 0.64 36.8zM545.44 688a272 272 0 0 1-148 68.64l-96 7.84c-46.24 3.84-71.68 5.92-76.48 5.92a36.96 36.96 0 0 1-26.24-10.72c-12.64-12.48-12.64-12.48-5.12-102.56l8-96a272 272 0 0 1 68.64-148l352-351.2a113.28 113.28 0 0 1 155.84 0l118.88 118.88a109.92 109.92 0 0 1 0 155.36z m299.52-455.2l-118.88-118.88a37.12 37.12 0 0 0-51.84 0l-352 352a195.52 195.52 0 0 0-48 102.24l-8 96-2.56 30.88 30.88-2.56 96-8a196.64 196.64 0 0 0 102.24-48l352-351.04a37.12 37.12 0 0 0 0-51.84z"
-                          fill="#4592D8" p-id="14822"></path>
-                      </svg>
-                      <svg t="1752824184119" @click="toRobotTest(assistant.id)"
-                        class="setting icon w-4 h-4 ml-2 touch-effect  " viewBox="0 0 1024 1024" version="1.1"
-                        xmlns="http://www.w3.org/2000/svg" p-id="16138" id="mx_n_1752824184120" width="200"
-                        height="200">
-                        <title>设置</title>
-                        <path
-                          d="M416.536774 33.296516c60.482065-11.230968 123.375484-11.230968 185.244903 0.825807a186.103742 186.103742 0 0 0 93.481291 164.005161 186.103742 186.103742 0 0 0 188.779355-1.024 496.408774 496.408774 0 0 1 93.349161 160.008258 181.644387 181.644387 0 0 0-95.198968 160.933161c0.330323 69.565935 39.506581 130.34529 96.949678 161.957162a486.433032 486.433032 0 0 1-91.796646 158.984258c-56.088774-33.957161-128.29729-37.458581-188.746322-2.972904a181.644387 181.644387 0 0 0-91.763613 162.915097c-60.482065 11.197935-123.375484 11.230968-185.244903-0.858839a186.103742 186.103742 0 0 0-93.481291-164.005161 186.103742 186.103742 0 0 0-188.779354 1.057032 496.408774 496.408774 0 0 1-93.349162-160.008258 181.644387 181.644387 0 0 0 95.198968-160.933161c-0.330323-69.598968-39.506581-130.34529-96.98271-161.957161 9.909677-28.605935 22.693161-56.683355 38.383484-83.868903A486.433032 486.433032 0 0 1 136.026839 193.23871c56.088774 33.957161 128.29729 37.491613 188.746322 3.005935a181.644387 181.644387 0 0 0 91.763613-162.915097z m3.369291 641.816774c88.856774 51.299097 201.992258 21.702194 252.696774-66.097548 50.671484-87.799742 19.75329-200.571871-69.136516-251.904-88.856774-51.299097-201.992258-21.702194-252.696775 66.064516-50.704516 87.832774-19.75329 200.604903 69.136517 251.904z"
-                          fill="#f9a303" p-id="16139"></path>
                       </svg>
 
                     </div>
@@ -145,24 +140,10 @@
         </div>
 
         <!-- 右侧内容 -->
-        <div class="rside flex-1 flex flex-col">
+        <div v-if="store.getters.getSelectedId" class="rside flex-1 flex flex-col">
           <!-- 顶部标题 -->
           <div class="top flex justify-between p-4 border-b border-gray-300">
-            <div class="title text-sm flex">聊天窗口
-
-              <!-- 联网搜索开关按钮 -->
-              <div class=" ml-4 flex   ">
-                <span class=" border-gray-300">联网搜索</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" :checked="store.getters.getIsOnline" class="sr-only peer  "
-                    @change="toggleOnline()" :disabled="store.getters.getIsCallActive">
-                  <div
-                    class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"
-                    :class="{ 'opacity-50 cursor-not-allowed': store.getters.getIsCallActive }">
-                  </div>
-                </label>
-              </div>
-            </div>
+            <div class="title text-sm flex">聊天窗口</div>
 
             <div @click="resetChat" class="reset text-sm flex items-center cursor-pointer  ">
               <RotateCcw color="#111" class="w-5 h-5" />
@@ -215,8 +196,15 @@
                         fill="#3F4651" p-id="28057"></path>
                     </svg>
                   </div>
-                  <div class="information bg-white p-3 ml-4 max-w-[70%] inline-block leading-5 ">
-                    {{ oldmessage[oldmessage.length - index - 1].content }}
+                  <div class="ml-4 max-w-[70%]">
+                    <div v-if="oldmessage[oldmessage.length - index - 1].deepcontent"
+                      class="border border-dashed border-gray-300 rounded p-2 mb-2 text-xs text-gray-500 max-h-36 overflow-y-auto">
+                      <div class="font-medium mb-1">深度思考</div>
+                      <div v-html="renderMarkdown(oldmessage[oldmessage.length - index - 1].deepcontent)"></div>
+                    </div>
+                    <div class="information bg-white p-3 inline-block leading-5"
+                      v-html="renderMarkdown(oldmessage[oldmessage.length - index - 1].content)">
+                    </div>
                   </div>
                 </template>
 
@@ -255,6 +243,49 @@
                 </template>
               </div>
 
+              <!-- 文本聊天消息（RTM） -->
+              <div v-for="(message, index) in store.getters.getRTMbyId(store.getters.getSelectedId).messages"
+                :key="'rtm-' + index"
+                :class="['chatbox flex mt-5 w-[100%]', message.type === 'ai' ? 'justify-start' : 'justify-end']">
+
+                <template v-if="message.type === 'ai'">
+                  <div class="w-10 h-10 border-solid border flex justify-center items-center rounded-full flex-shrink-0 ml-6">
+                    <svg t="1752828206160" class="icon w-6 h-6" viewBox="0 0 1179 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="28052" width="200" height="200">
+                      <path d="M597.215632 994.574713h403.714943s43.549425-8.945287 43.549425-114.64092 94.16092-577.677241-459.976092-577.677241-457.151264 541.425287-457.151264 541.425287-25.423448 160.77977 54.848735 157.013333 415.014253-6.12046 415.014253-6.120459z" fill="#FFFFFF" p-id="28053"></path>
+                      <path d="M1071.786667 712.798161h72.503908v136.297931h-72.503908zM36.016552 712.798161h72.503908v136.297931H36.016552z" fill="#EA5D5C" p-id="28054"></path>
+                      <path d="M305.68366 559.40926l556.254412-1.165018 0.398364 190.20464-556.254412 1.165018-0.398364-190.20464Z" fill="#4C66AF" p-id="28055"></path>
+                      <path d="M1129.931034 680.312644h-59.556781c-3.295632-152.069885-67.56046-258.942529-172.079081-324.384368l115.347127-238.462529a47.08046 47.08046 0 1 0-42.372414-20.48l-114.640919 236.57931a625.934713 625.934713 0 0 0-269.30023-53.200919 625.228506 625.228506 0 0 0-270.006437 54.848736l-115.817931-235.402299a47.08046 47.08046 0 1 0-42.372414 20.715402l117.701149 238.462529c-103.812414 65.441839-167.135632 173.02069-169.960459 324.61977H47.786667a47.08046 47.08046 0 0 0-47.08046 47.08046v117.701149a47.08046 47.08046 0 0 0 47.08046 47.08046h58.615172v57.908965a70.62069 70.62069 0 0 0 70.62069 70.62069l823.908046-1.647816a70.62069 70.62069 0 0 0 70.620689-70.62069v-57.908965h59.085977a47.08046 47.08046 0 0 0 47.08046-47.08046v-117.701149A47.08046 47.08046 0 0 0 1129.931034 680.312644zM94.16092 847.212874H47.08046v-117.70115h47.08046v117.70115z m929.83908 103.106206a23.54023 23.54023 0 0 1-23.54023 23.54023l-823.908046 1.647816a23.54023 23.54023 0 0 1-23.54023-23.540229v-258.942529c0-329.563218 303.668966-365.57977 434.788046-365.815173s435.494253 34.604138 436.20046 363.931954z m105.46023-105.224827h-47.08046v-117.70115h47.08046v117.70115z" fill="#3F4651" p-id="28056"></path>
+                      <path d="M464.684138 135.827126l22.363218-19.53839 40.018391 62.381609a30.131494 30.131494 0 0 0 25.423448 13.888735h2.824828a30.131494 30.131494 0 0 0 25.188046-19.067586l20.715402-79.095172 21.186207 74.387126v2.118621a30.366897 30.366897 0 0 0 52.494713 6.826667l30.366896-57.202759 13.182529 12.947126a30.131494 30.131494 0 0 0 21.186207 8.709886h57.673563a23.54023 23.54023 0 0 0 23.54023-23.54023 23.54023 23.54023 0 0 0-23.54023-23.54023h-50.140689l-23.54023-23.54023a30.366897 30.366897 0 0 0-45.668046 3.766437l-21.42161 40.01839L629.465747 19.302989a30.131494 30.131494 0 0 0-28.012873-19.067587 30.131494 30.131494 0 0 0-28.012874 19.067587l-26.60046 101.693793-29.660689-47.08046a30.366897 30.366897 0 0 0-20.48-13.653333 30.837701 30.837701 0 0 0-23.54023 6.826666l-32.250115 28.248276h-60.027586a23.54023 23.54023 0 0 0-23.54023 23.54023 23.54023 23.54023 0 0 0 23.54023 23.54023h66.148046a31.308506 31.308506 0 0 0 17.655172-6.591265zM776.121379 532.950805H404.421149A121.232184 121.232184 0 0 0 282.482759 639.352644a117.701149 117.701149 0 0 0 117.701149 129.000459h371.70023a121.232184 121.232184 0 0 0 121.938391-106.401839 117.701149 117.701149 0 0 0-117.70115-129.000459z m0 188.321839H402.302529a72.503908 72.503908 0 0 1-72.268506-56.496552 70.62069 70.62069 0 0 1 68.972874-84.744828h373.81885a72.503908 72.503908 0 0 1 72.268506 56.496552 70.62069 70.62069 0 0 1-68.502069 84.744828z" fill="#3F4651" p-id="28057"></path>
+                    </svg>
+                  </div>
+                  <div class="ml-4 max-w-[70%]">
+                    <div v-if="message.deepcontent"
+                      class="border border-dashed border-gray-300 rounded p-2 mb-2 text-xs text-gray-500 max-h-36 overflow-y-auto">
+                      <div class="font-medium mb-1">深度思考</div>
+                      <div v-html="renderMarkdown(message.deepcontent)"></div>
+                    </div>
+                    <div v-if="message.elapsedTime"
+                      class="p-1.5 px-2 bg-slate-600 text-white text-xs rounded-md ml-2 w-auto max-w-36 opacity-80">
+                      生成用时 {{ message.elapsedTime }}s
+                    </div>
+                    <div class="information bg-white p-3 inline-block leading-5"
+                      v-html="renderMarkdown(message.content)">
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="message.type === 'user'">
+                  <div class="information bg-white p-3 max-w-[70%] text-gray-600">
+                    {{ message.content }}
+                  </div>
+                  <div class="w-10 h-10 border-solid border flex justify-center items-center rounded-full flex-shrink-0 ml-4 mr-6">
+                    <svg t="1754294706915" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9616" width="200" height="200">
+                      <path d="M512.524936 0.008332C229.809447 0.008332 0.587428 229.230351 0.587428 511.94584c0 174.13291 86.976883 327.943301 219.835665 420.423679 25.99266-90.522283 91.847122-158.622304 181.419521-189.5102a331.426209 331.426209 0 0 1 8.557288-2.807991c1.3665-0.429114 2.716335-0.870727 4.091168-1.283176a323.077229 323.077229 0 0 1 12.802603-3.562066l0.254136-0.058326a327.101737 327.101737 0 0 1 12.910924-2.978803c1.383164-0.291631 2.778827-0.554099 4.166158-0.829065a341.275007 341.275007 0 0 1 14.160772-2.512194 346.915985 346.915985 0 0 1 9.682151-1.354001c1.424826-0.179145 2.84132-0.37912 4.274478-0.5416a355.210806 355.210806 0 0 1 14.039953-1.354002h18.539404c1.891436 0.112486 3.778705 0.112486 5.670141 0h1.533146c-133.117084 0-241.028911-107.911827-241.028911-241.028911 0-1.266512 0.074991-2.516359 0.095822-3.774539-1.31234-152.377233 141.516058-244.178526 241.17056-237.37519 102.270849-6.965816 250.006982 89.397421 241.383034 248.353017-0.254136 0.158314-0.529102 0.279133-0.783237 0.43328-4.04534 129.575849-110.286537 233.392343-240.841434 233.392343h25.980162c4.724423 0.354123 9.394687 0.820733 14.035786 1.354002 1.437325 0.16248 2.857984 0.362456 4.282811 0.5416a359.614435 359.614435 0 0 1 14.402408 2.124741c3.153782 0.533268 6.2784 1.11653 9.386355 1.733121 1.412328 0.279133 2.837154 0.545767 4.236982 0.841564a327.626673 327.626673 0 0 1 12.59013 2.903813c0.279133 0.070825 0.566598 0.137483 0.84573 0.212474a318.461125 318.461125 0 0 1 12.42765 3.457911c1.470654 0.437447 2.912145 0.912389 4.366134 1.3665 2.753831 0.866561 5.490996 1.758119 8.207331 2.691338 89.605728 30.850401 155.497685 98.921258 181.536173 189.426876 132.742129-92.497042 219.635689-246.236608 219.635689-420.286195 0.008332-282.719655-229.20952-511.937508-511.929175-511.937508z" fill="#A6D4AE" p-id="9617"></path>
+                    </svg>
+                  </div>
+                </template>
+              </div>
+
               <!-- 聊天消息区域2 -->
               <div v-for="(message, index) in store.getters.getNewMessagebyId(store.getters.getSelectedId).messages"
                 :key="index"
@@ -285,12 +316,17 @@
                     </svg>
                   </div>
                   <div class="ml-4 max-w-[70%] ">
+                    <div v-if="message.deepcontent"
+                      class="border border-dashed border-gray-300 rounded p-2 mb-2 text-xs text-gray-500 max-h-36 overflow-y-auto">
+                      <div class="font-medium mb-1">深度思考</div>
+                      <div v-html="renderMarkdown(message.deepcontent)"></div>
+                    </div>
                     <div v-if="message.duration"
                       class="p-1.5 px-2 bg-slate-600 text-white text-xs rounded-md ml-2 w-auto max-w-36 opacity-80">
                       语音生成用时 {{ message.duration / 1000 }}s
                     </div>
-                    <div class="information bg-white p-3 inline-block leading-5  ">
-                      {{ message.content }}
+                    <div class="information bg-white p-3 inline-block leading-5"
+                      v-html="renderMarkdown(message.content)">
                     </div>
                   </div>
 
@@ -377,6 +413,38 @@
                 </div>
 
               </div>
+
+              <!-- 文本流式消息 -->
+              <div class="chatbox flex mt-5 w-[100%] justify-start" v-if="store.getters.getIsHaveTextMessage">
+                <div class="w-10 h-10 border-solid border flex justify-center items-center rounded-full flex-shrink-0 ml-6">
+                  <svg t="1752828206160" class="icon w-6 h-6" viewBox="0 0 1179 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="28052" width="200" height="200">
+                    <path d="M597.215632 994.574713h403.714943s43.549425-8.945287 43.549425-114.64092 94.16092-577.677241-459.976092-577.677241-457.151264 541.425287-457.151264 541.425287-25.423448 160.77977 54.848735 157.013333 415.014253-6.12046 415.014253-6.120459z" fill="#FFFFFF" p-id="28053"></path>
+                    <path d="M1071.786667 712.798161h72.503908v136.297931h-72.503908zM36.016552 712.798161h72.503908v136.297931H36.016552z" fill="#EA5D5C" p-id="28054"></path>
+                    <path d="M305.68366 559.40926l556.254412-1.165018 0.398364 190.20464-556.254412 1.165018-0.398364-190.20464Z" fill="#4C66AF" p-id="28055"></path>
+                    <path d="M1129.931034 680.312644h-59.556781c-3.295632-152.069885-67.56046-258.942529-172.079081-324.384368l115.347127-238.462529a47.08046 47.08046 0 1 0-42.372414-20.48l-114.640919 236.57931a625.934713 625.934713 0 0 0-269.30023-53.200919 625.228506 625.228506 0 0 0-270.006437 54.848736l-115.817931-235.402299a47.08046 47.08046 0 1 0-42.372414 20.715402l117.701149 238.462529c-103.812414 65.441839-167.135632 173.02069-169.960459 324.61977H47.786667a47.08046 47.08046 0 0 0-47.08046 47.08046v117.701149a47.08046 47.08046 0 0 0 47.08046 47.08046h58.615172v57.908965a70.62069 70.62069 0 0 0 70.62069 70.62069l823.908046-1.647816a70.62069 70.62069 0 0 0 70.620689-70.62069v-57.908965h59.085977a47.08046 47.08046 0 0 0 47.08046-47.08046v-117.701149A47.08046 47.08046 0 0 0 1129.931034 680.312644zM94.16092 847.212874H47.08046v-117.70115h47.08046v117.70115z m929.83908 103.106206a23.54023 23.54023 0 0 1-23.54023 23.54023l-823.908046 1.647816a23.54023 23.54023 0 0 1-23.54023-23.540229v-258.942529c0-329.563218 303.668966-365.57977 434.788046-365.815173s435.494253 34.604138 436.20046 363.931954z m105.46023-105.224827h-47.08046v-117.70115h47.08046v117.70115z" fill="#3F4651" p-id="28056"></path>
+                  </svg>
+                </div>
+                <div class="ml-4 max-w-[70%]">
+                  <div v-if="store.getters.getTextMessageContent?.deepcontent"
+                    class="border border-dashed border-gray-300 rounded p-2 mb-2 text-xs text-gray-500 max-h-36 overflow-y-auto">
+                    <div class="font-medium mb-1">深度思考</div>
+                    <div v-html="renderMarkdown(store.getters.getTextMessageContent.deepcontent)"></div>
+                  </div>
+                  <div>
+                    <svg t="1753683262916" class="dots-svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4487" width="200" height="200">
+                      <path class="dot dot-1" d="M224 512m-96 0a96 96 0 1 0 192 0 96 96 0 1 0-192 0Z" fill="#515151" p-id="4488"></path>
+                      <path class="dot dot-2" d="M800 512m-96 0a96 96 0 1 0 192 0 96 96 0 1 0-192 0Z" fill="#515151" p-id="4489"></path>
+                      <path class="dot dot-3" d="M512 512m-96 0a96 96 0 1 0 192 0 96 96 0 1 0-192 0Z" fill="#515151" p-id="4490"></path>
+                    </svg>
+                  </div>
+                  <div
+                    v-if="store.getters.getTextMessageContent && typeof store.getters.getTextMessageContent.content === 'string' && store.getters.getTextMessageContent.content.trim() !== ''"
+                    class="information bg-white p-3 inline-block leading-5"
+                    v-html="renderMarkdown(store.getters.getTextMessageContent.content)">
+                  </div>
+                </div>
+              </div>
+
               <div :style="{
                 height: (11 - messageHeight) * 10 < 30
                   ? '30%'
@@ -386,41 +454,57 @@
           </div>
 
 
-          <!-- 底部控制按钮 -->
+          <!-- 底部控制区域 -->
           <div class="bottom pb-4 pt-2 relative">
-
 
             <div v-show="store.getters.getIsCallActive"
               class="wave-container absolute -top-20 left-1/2 transform -translate-x-1/2">
-              <!-- 改为7条，减少数量使每条变化更明显 -->
               <div class="wave-bar" v-for="n in 7" :key="n"></div>
             </div>
 
+            <!-- 功能开关行 -->
+            <div class="flex justify-center gap-3 mb-2" style="user-select: none; -webkit-user-select: none;">
+              <div @click="toggleKnow" :class="['w-28 h-8 rounded-2xl flex text-xs justify-center items-center cursor-pointer shadow-md Bottom-touch-effect',
+                store.getters.getIsStartKnow ? 'bg-blue-400 text-white' : 'bg-white']">
+                知识库:{{ store.getters.getIsStartKnow ? '开' : '关' }}
+              </div>
+              <div @click="toggleOnline" :class="['w-28 h-8 rounded-2xl flex text-xs justify-center items-center cursor-pointer shadow-md Bottom-touch-effect',
+                store.getters.getIsOnline ? 'bg-blue-400 text-white' : 'bg-white']">
+                联网搜索
+              </div>
+              <div @click="toggleDeep" :class="['w-28 h-8 rounded-2xl flex text-xs justify-center items-center cursor-pointer shadow-md Bottom-touch-effect',
+                store.getters.getIsDeepThink ? 'bg-blue-400 text-white' : 'bg-white']">
+                深度思考
+              </div>
+            </div>
 
-            <div class="buttons flex justify-center">
+            <!-- 文本输入行 -->
+            <div class="flex items-center gap-2 px-4 mb-2">
+              <textarea v-model="userInput" @keydown.enter.prevent="sendtoChat" @input="updateCharacterCount"
+                class="flex-1 h-10 p-2 border border-gray-300 rounded-lg resize-none focus:outline-none text-sm"
+                placeholder="请输入消息..." maxlength="120" style="min-height: 40px;"></textarea>
+              <div class="text-xs text-gray-400 w-10 text-center">{{ characterCount }}/120</div>
+              <button v-if="store.getters.getIsTextChat" @click="sendInterrupt" title="停止输出"
+                class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-red-500 active:scale-90 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24">
+                  <path fill="currentColor" fill-rule="evenodd"
+                    d="M12 23c6.075 0 11-4.925 11-11S18.075 1 12 1 1 5.925 1 12s4.925 11 11 11m0-20a9 9 0 1 1 0 18 9 9 0 0 1 0-18m-2 5.5A1.5 1.5 0 0 0 8.5 10v4a1.5 1.5 0 0 0 1.5 1.5h4a1.5 1.5 0 0 0 1.5-1.5v-4A1.5 1.5 0 0 0 14 8.5z"
+                    clip-rule="evenodd"></path>
+                </svg>
+              </button>
+              <button v-else @click="sendtoChat" :disabled="!userInput.trim()"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                发送
+              </button>
+            </div>
 
-              <!-- 接听/挂断按钮 -->
+            <!-- 语音控制行 -->
+            <div class="flex justify-center items-center">
               <div @click="toggleCall" id="refuse"
-                :class="['w-10 h-10 rounded-full flex justify-center items-center mx-3 cursor-pointer shadow-md Bottom-touch-effect  ', !store.getters.getIsCallActive ? 'bg-green-500' : 'bg-red-500']">
+                :class="['w-10 h-10 rounded-full flex justify-center items-center mx-3 cursor-pointer shadow-md Bottom-touch-effect', !store.getters.getIsCallActive ? 'bg-green-500' : 'bg-red-500']">
                 <Phone v-if="!store.getters.getIsCallActive" color="#fff" class="w-8 h-8" />
                 <PhoneOffIcon v-if="store.getters.getIsCallActive" color="#fff" class="w-8 h-8" />
               </div>
-
-              <!-- 知识库按钮 -->
-              <div @click="toggleKnow" id="konw" style="user-select: none; -webkit-user-select: none;" :class="['w-40 h-10 rounded-2xl  flex justify-center items-center mx-3 cursor-pointer shadow-md Bottom-touch-effect  ',
-                store.getters.getIsStartKnow ? 'bg-blue-400' : 'bg-white']">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M2.656 17.344c-1.016-1.015-1.15-2.75-.313-4.925.325-.825.73-1.617 1.205-2.365L3.582 10l-.033-.054c-.5-.799-.91-1.596-1.206-2.365-.836-2.175-.703-3.91.313-4.926.56-.56 1.364-.86 2.335-.86 1.425 0 3.168.636 4.957 1.756l.053.034.053-.034c1.79-1.12 3.532-1.757 4.957-1.757.972 0 1.776.3 2.335.86 1.014 1.015 1.148 2.752.312 4.926a13.892 13.892 0 0 1-1.206 2.365l-.034.054.034.053c.5.8.91 1.596 1.205 2.365.837 2.175.704 3.911-.311 4.926-.56.56-1.364.861-2.335.861-1.425 0-3.168-.637-4.957-1.757L10 16.415l-.053.033c-1.79 1.12-3.532 1.757-4.957 1.757-.972 0-1.776-.3-2.335-.86zm13.631-4.399c-.187-.488-.429-.988-.71-1.492l-.075-.132-.092.12a22.075 22.075 0 0 1-3.968 3.968l-.12.093.132.074c1.308.734 2.559 1.162 3.556 1.162.563 0 1.006-.138 1.298-.43.3-.3.436-.774.428-1.346-.008-.575-.159-1.264-.449-2.017zm-6.345 1.65l.058.042.058-.042a19.881 19.881 0 0 0 4.551-4.537l.043-.058-.043-.058a20.123 20.123 0 0 0-2.093-2.458 19.732 19.732 0 0 0-2.458-2.08L10 5.364l-.058.042A19.883 19.883 0 0 0 5.39 9.942L5.348 10l.042.059c.631.874 1.332 1.695 2.094 2.457a19.74 19.74 0 0 0 2.458 2.08zm6.366-10.902c-.293-.293-.736-.431-1.298-.431-.998 0-2.248.429-3.556 1.163l-.132.074.12.092a21.938 21.938 0 0 1 3.968 3.968l.092.12.074-.132c.282-.504.524-1.004.711-1.492.29-.753.442-1.442.45-2.017.007-.572-.129-1.045-.429-1.345zM3.712 7.055c.202.514.44 1.013.712 1.493l.074.13.092-.119a21.94 21.94 0 0 1 3.968-3.968l.12-.092-.132-.074C7.238 3.69 5.987 3.262 4.99 3.262c-.563 0-1.006.138-1.298.43-.3.301-.436.774-.428 1.346.007.575.159 1.264.448 2.017zm0 5.89c-.29.753-.44 1.442-.448 2.017-.008.572.127 1.045.428 1.345.293.293.736.431 1.298.431.997 0 2.247-.428 3.556-1.162l.131-.074-.12-.093a21.94 21.94 0 0 1-3.967-3.968l-.093-.12-.074.132a11.712 11.712 0 0 0-.71 1.492z"
-                    fill="currentColor" stroke="currentColor" stroke-width=".1"></path>
-                  <path d="M10.706 11.704A1.843 1.843 0 0 1 8.155 10a1.845 1.845 0 1 1 2.551 1.704z" fill="currentColor"
-                    stroke="currentColor" stroke-width=".2"></path>
-                </svg>
-                知识库:{{ store.getters.getIsStartKnow ? '开启' : '关闭' }}
-              </div>
-
-
-              <!-- 语音按钮 -->
               <div @click="toggleVoice" id="speak" :class="['w-10 h-10 rounded-full flex justify-center items-center mx-3 cursor-pointer shadow-md Bottom-touch-effect',
                 (store.getters.getIsHaveVoice || hide) ? 'bg-blue-500' : 'bg-white']">
                 <Mic v-if="(store.getters.getIsHaveVoice || hide)" color="#fff" class="w-8 h-8" />
@@ -430,9 +514,6 @@
 
             <p class="text-xs text-center mt-2">服务生成的所有内容均由人工智能模型生成，其生成内容的准确性和完整性无法保证，不代表我们的态度或观点
             </p>
-
-            <span v-if="store.getters.getIsHaveVoice"  :class="['absolute -bottom-4 right-1 w-2 h-2 rounded-full',
-                (store.getters.getIsHaveVoice) ? ' bg-green-400' : ' bg-red-400']"></span>
           </div>
         </div>
       </div>
@@ -548,10 +629,35 @@
             </div>
 
             <!-- 描述输入项 -->
-            <div class="mb-5">
+            <div class="mb-4">
               <label class="descri block text-sm text-gray-600 mb-1.5">描述</label>
               <textarea v-model="newAssistant.description" placeholder="请输入描述信息"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-sm h-24 resize-none"></textarea>
+            </div>
+
+            <!-- 人格设置 -->
+            <div class="mb-4">
+              <label class="block text-sm text-gray-600 mb-1.5">人格设置</label>
+              <textarea v-model="newAssistant.character" placeholder="设定助手的人格和回复风格"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-sm h-32 resize-none"></textarea>
+            </div>
+
+            <!-- 知识库选择 -->
+            <div class="mb-5">
+              <div class="flex justify-between items-center mb-1.5">
+                <label class="block text-sm text-gray-600">知识库</label>
+                <button @click="router.push('/konw_page')"
+                  class="text-xs text-blue-500 hover:text-blue-600 border border-blue-500 px-2 py-0.5 rounded">
+                  管理知识库
+                </button>
+              </div>
+              <select v-model="newAssistant.knowledge_base_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-sm bg-white">
+                <option value="">不使用知识库</option>
+                <option v-for="kb in knowledgeBases" :key="kb.id" :value="kb.id">
+                  {{ kb.name }}
+                </option>
+              </select>
             </div>
 
             <!-- 按钮区域 -->
@@ -638,9 +744,11 @@ import draggable from 'vuedraggable'//助手列表拖动
 // 本地助手列表，用于 draggable 组件
 const localAssistants = ref([])
 
+import { renderMarkdown } from '../utils/markdown.js';
 import { toggleMicrophone, WebRTC, closeWebRTC } from '../assets/js/webRTCAll.js'  //webRTC
 import AssistantService from '../api/assistant.js'; //ai助手增删改查的api调用封装
 import MessageService from '../api/message.js'; //聊天信息api调用封装
+import KnowledgeService from '../api/knowledge.js';
 import { callDuration, stopCallTimer } from '../assets/js/timer.js';//记录通话时长 
 import { issuccess, isErr, isErrMessage, issuccessMessage, showSuccessMessage, showErrMessage } from '../assets/js/showErrOrTrue.js'; //成功失败消息提示
 import { initWaveAnimation } from '../assets/js/waveAnimation.js'//显示声音音波
@@ -665,7 +773,11 @@ const showModal = ref(false);  //蒙板显示
 const showD = ref(false);      //删除表单显示
 const showC = ref(false);      //修改表单显示
 const showA = ref(false);      //添加表单显示
-const showB = ref(false);      //添加表单显示
+const showB = ref(false);      //音色表单显示
+
+const userInput = ref('');           // 文本输入
+const characterCount = ref(0);       // 字符计数
+let activeStreamController = null;   // SSE 流控制器
 
 const errorMessage = ref('')  // 错误信息
 const isShaking = ref(false)  // 是否触发震动
@@ -969,17 +1081,25 @@ const resetChat = async () => {
     return
   }
 
-  try {
-    // reset_history 接口未实现，仅清理前端会话。
-    store.commit('clearnewMessagebyId', store.getters.getSelectedId)
-    store.commit('clearOldMessagebyId', store.getters.getSelectedId)
-    store.commit('clearMessageIndex')
-    messageHeight.value = 0
-
-    showSuccessMessage('已清空当前本地对话')
-  } catch (error) {
-    console.error('重置对话失败:', error)
+  if (activeStreamController) {
+    activeStreamController.abort();
+    activeStreamController = null;
   }
+
+  try {
+    await MessageService.resetHistory(store.getters.getSelectedId);
+  } catch (e) {
+    console.error('重置对话失败:', e);
+  }
+
+  store.commit('clearnewMessagebyId', store.getters.getSelectedId)
+  store.commit('clearOldMessagebyId', store.getters.getSelectedId)
+  store.commit('clearRTMbyId', store.getters.getSelectedId)
+  store.commit('clearTextMessageContent')
+  store.commit('clearMessageIndex')
+  messageHeight.value = 0
+
+  showSuccessMessage('已清空当前本地对话')
 };
 
 //切换助手
@@ -1008,6 +1128,16 @@ const newAssistant = ref({
 });
 
 const selectedPreset = ref(-1);
+
+const knowledgeBases = ref([]);
+const fetchKnowledgeBases = async () => {
+  try {
+    const result = await KnowledgeService.getKnowledgeBasesByUserId();
+    knowledgeBases.value = result?.data || [];
+  } catch (e) {
+    console.error('获取知识库列表失败:', e);
+  }
+};
 
 watch(selectedPreset, (index) => {
   if (index >= 0 && index < presetAssistants.length) {
@@ -1261,18 +1391,6 @@ const selectAndChangeAssistant = (assistant) => {
     description: assistant.description
   });
 };
-//跳转到助手测试
-const toRobotTest = (id) => {
-  if (store.getters.getIsCallActive) {
-    showErrMessage('通话状态不可进行跳转')
-    return
-  }
-  store.commit('setSelectedId', id);
-  nextTick(() => {
-    router.push('/robot_test')
-  })
-}
-
 // ---- ---- ---- ---- ---- 记录通话时间功能 ---- ---- ---- ---- ----
 
 // 计算属性获取通话时间
@@ -1346,24 +1464,110 @@ const handleKeyDown = (e) => {
 
 //是否使用知识库
 const toggleKnow = () => {
-  if (store.getters.getIsCallActive) {
-    showErrMessage('通话状态不可进行')
-    return
-  }
   store.commit('setIsStartKnow', !store.getters.getIsStartKnow)
-
 };
 //是否使用联网搜索
 const toggleOnline = () => {
-  if (store.getters.getIsCallActive) {
-    showErrMessage('通话状态不可进行')
-    return
-  }
   store.commit('setIsOnline', !store.getters.getIsOnline)
-  console.log(store.getters.getIsOnline)
-
 };
 
+//是否开启深度思考
+const toggleDeep = () => {
+  store.commit('setIsDeepThink', !store.getters.getIsDeepThink)
+};
+
+//文本长度
+const updateCharacterCount = () => {
+  characterCount.value = userInput.value.length;
+};
+
+//信息发送
+const sendtoChat = async () => {
+  if (userInput.value.trim() === '') return;
+  const question = userInput.value.trim();
+  const currentAssistantId = store.getters.getSelectedId;
+  const playId = Date.now().toString();
+
+  if (activeStreamController) {
+    activeStreamController.abort();
+  }
+  activeStreamController = new AbortController();
+
+  store.commit('addRTMbyId', {
+    message: { type: 'user', content: question },
+    id: currentAssistantId
+  });
+  store.commit('setIsHaveTextMessage', true)
+  store.commit('setIsTextChat', true)
+  store.commit('clearTextMessageContent')
+  userInput.value = '';
+  characterCount.value = 0;
+
+  nextTick(() => {
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+    }
+  });
+
+  const startedAt = Date.now();
+  try {
+    await AssistantService.streamGenerateReply({
+      question,
+      aiAssistantId: currentAssistantId,
+      enableOnlineSearch: store.getters.getIsOnline,
+      enableDeepThinking: store.getters.getIsDeepThink,
+      signal: activeStreamController.signal,
+      onToken: (token) => {
+        store.commit('setTextMessageContent', {
+          chat_id: 0, play_id: playId, content: token || ''
+        });
+      },
+      onThinking: (thinking) => {
+        store.commit('setTextMessageContent', {
+          chat_id: -2, play_id: playId, content: thinking || ''
+        });
+      },
+      onDone: () => {
+        const generated = store.getters.getTextMessageContent;
+        const content = generated?.content || '';
+        if (content.trim()) {
+          store.commit('addRTMbyId', {
+            message: {
+              type: 'ai', content,
+              deepcontent: generated?.deepcontent || '',
+              elapsedTime: Math.round((Date.now() - startedAt) / 1000)
+            },
+            id: currentAssistantId
+          });
+        }
+        store.commit('setIsHaveTextMessage', false);
+        store.commit('setIsTextChat', false);
+        store.commit('clearTextMessageContent');
+      },
+      onError: (message) => {
+        triggerShake(message || '生成失败，请稍后重试');
+      }
+    });
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      triggerShake(error.message || '生成失败，请稍后重试');
+    }
+  } finally {
+    store.commit('setIsHaveTextMessage', false);
+    store.commit('setIsTextChat', false);
+    activeStreamController = null;
+  }
+};
+
+//消息中断命令
+const sendInterrupt = () => {
+  if (activeStreamController) {
+    activeStreamController.abort();
+    activeStreamController = null;
+  }
+  store.commit('setIsTextChat', false)
+  store.commit('setIsHaveTextMessage', false)
+};
 
 // 触发震动效果的函数（1秒后自动停止）
 const handleLogout = async () => {
