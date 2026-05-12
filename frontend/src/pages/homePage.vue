@@ -902,6 +902,13 @@ const oldmessage = computed(() => {
   return store.getters.getAssistantMessagebyId(store.getters.getSelectedId).messages;
 });
 
+// 检查用户是否在底部附近（阈值50px）
+const isNearBottom = () => {
+  const el = scrollContainer.value;
+  if (!el) return true;
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+};
+
 // 仅当聊天内容超出容器时才自动滚动到底部
 const scrollToBottomIfOverflow = () => {
   nextTick(() => {
@@ -1505,7 +1512,9 @@ const sendtoChat = async () => {
   userInput.value = '';
   characterCount.value = 0;
 
-  scrollToBottomIfOverflow();
+  if (isNearBottom()) {
+    scrollToBottomIfOverflow();
+  }
 
   const startedAt = Date.now();
   try {
@@ -1519,11 +1528,17 @@ const sendtoChat = async () => {
         store.commit('setTextMessageContent', {
           chat_id: 0, play_id: playId, content: token || ''
         });
+        if (isNearBottom()) {
+          nextTick(() => scrollToBottom());
+        }
       },
       onThinking: (thinking) => {
         store.commit('setTextMessageContent', {
           chat_id: -2, play_id: playId, content: thinking || ''
         });
+        if (isNearBottom()) {
+          nextTick(() => scrollToBottom());
+        }
       },
       onDone: () => {
         const generated = store.getters.getTextMessageContent;
@@ -1541,6 +1556,9 @@ const sendtoChat = async () => {
         store.commit('setIsHaveTextMessage', false);
         store.commit('setIsTextChat', false);
         store.commit('clearTextMessageContent');
+        nextTick(() => {
+          if (isNearBottom()) scrollToBottom();
+        });
       },
       onError: (message) => {
         triggerShake(message || '生成失败，请稍后重试');
