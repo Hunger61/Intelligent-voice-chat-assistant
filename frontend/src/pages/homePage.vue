@@ -153,8 +153,8 @@
 
           <!-- 聊天内容区域 -->
           <div class="content relative min-h-0 flex-1 flex flex-col bg-gray-50 items-center ">
-            <!-- 通话状态指示器 -->
-            <div id="sign"
+            <!-- 通话状态指示器 - 仅通话时显示 -->
+            <div id="sign" v-if="store.getters.getIsCallActive"
               class="sticky top-3 w-28 px-2 py-1.5 h-7 text-xs text-center leading-7 rounded-full bg-green-100 flex justify-center items-center">
               <div class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></div>
               {{ callTimeDisplay }}
@@ -902,24 +902,26 @@ const oldmessage = computed(() => {
   return store.getters.getAssistantMessagebyId(store.getters.getSelectedId).messages;
 });
 
-//监听是否在发消息
+// 仅当聊天内容超出容器时才自动滚动到底部
+const scrollToBottomIfOverflow = () => {
+  nextTick(() => {
+    const el = scrollContainer.value;
+    if (el && el.scrollHeight > el.clientHeight) {
+      el.scrollTop = el.scrollHeight;
+    }
+  });
+};
+
+//监听语音消息，内容超出容器时自动滚动
 watch(
-  () => store.getters.getIsHaveNewMessage, // 监听的目标
+  () => store.getters.getIsHaveNewMessage,
   (newVal, oldVal) => {
-    // 当值发生变化时执行
     if (newVal !== oldVal) {
-      console.log(messageHeight.value)
       messageHeight.value = messageHeight.value + 1
-      // 发送消息滑到底部
-      nextTick(() => {
-        if (scrollContainer.value) {
-          // 滚动到底部
-          scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
-        }
-      })
+      scrollToBottomIfOverflow()
     }
   },
-  { immediate: false } // 不需要初始执行
+  { immediate: false }
 )
 
 // 监听浏览器刷新/关闭事件
@@ -1503,11 +1505,7 @@ const sendtoChat = async () => {
   userInput.value = '';
   characterCount.value = 0;
 
-  nextTick(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    }
-  });
+  scrollToBottomIfOverflow();
 
   const startedAt = Date.now();
   try {

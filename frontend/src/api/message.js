@@ -19,10 +19,16 @@ class MessageService {
       });
       const result = await this._handleResponse(response);
       const rows = Array.isArray(result?.data) ? result.data : [];
-      return rows.map(([role, content]) => ({
-        role: this._normalizeRole(role),
-        content
-      }));
+      return rows.map((item) => {
+        // 兼容后端 Pair 序列化的 {left, right} 和数组 [role, content] 两种格式
+        if (Array.isArray(item)) {
+          return { role: this._normalizeRole(item[0]), content: item[1] };
+        }
+        if (item && typeof item === 'object') {
+          return { role: this._normalizeRole(item.left ?? item.role), content: item.right ?? item.content };
+        }
+        return { role: 'assistant', content: String(item ?? '') };
+      });
     } catch (error) {
       console.error('Error fetching messages:', error);
       throw error;
