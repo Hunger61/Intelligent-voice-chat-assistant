@@ -202,7 +202,7 @@
                       <div class="font-medium mb-1">深度思考</div>
                       <div v-html="renderMarkdown(oldmessage[oldmessage.length - index - 1].deepcontent)"></div>
                     </div>
-                    <div class="information bg-white p-3 inline-block leading-5"
+                    <div class="information bg-white p-3 markdown-body leading-5"
                       v-html="renderMarkdown(oldmessage[oldmessage.length - index - 1].content)">
                     </div>
                   </div>
@@ -268,7 +268,7 @@
                       class="p-1.5 px-2 bg-slate-600 text-white text-xs rounded-md ml-2 w-auto max-w-36 opacity-80">
                       生成用时 {{ message.elapsedTime }}s
                     </div>
-                    <div class="information bg-white p-3 inline-block leading-5"
+                    <div class="information bg-white p-3 markdown-body leading-5"
                       v-html="renderMarkdown(message.content)">
                     </div>
                   </div>
@@ -325,7 +325,7 @@
                       class="p-1.5 px-2 bg-slate-600 text-white text-xs rounded-md ml-2 w-auto max-w-36 opacity-80">
                       语音生成用时 {{ message.duration / 1000 }}s
                     </div>
-                    <div class="information bg-white p-3 inline-block leading-5"
+                    <div class="information bg-white p-3 markdown-body leading-5"
                       v-html="renderMarkdown(message.content)">
                     </div>
                   </div>
@@ -407,8 +407,8 @@
                   </div>
                   <div
                     v-if="store.getters.getNewMessageContent && typeof store.getters.getNewMessageContent.content === 'string' && store.getters.getNewMessageContent.content.trim() !== ''"
-                    class="information bg-white p-3 inline-block leading-5 ">
-                    {{ store.getters.getNewMessageContent.content }}
+                    class="information bg-white p-3 markdown-body leading-5">
+                    <div v-html="renderMarkdown(store.getters.getNewMessageContent.content)"></div>
                   </div>
                 </div>
 
@@ -439,7 +439,7 @@
                   </div>
                   <div
                     v-if="store.getters.getTextMessageContent && typeof store.getters.getTextMessageContent.content === 'string' && store.getters.getTextMessageContent.content.trim() !== ''"
-                    class="information bg-white p-3 inline-block leading-5"
+                    class="information bg-white p-3 markdown-body leading-5"
                     v-html="renderMarkdown(store.getters.getTextMessageContent.content)">
                   </div>
                 </div>
@@ -1967,25 +1967,91 @@ const confirmSelection = () => {
 
 /* 第三个延迟300ms */
 
-.iframe-container {
-  position: absolute;
-  top: 0px;
-  /* 缩放后的定位 */
-  right: 0px;
-  /* 缩放后的定位 */
-  z-index: 30;
+/* Markdown 渲染样式 */
+.markdown-body p {
+  margin: 0.5em 0;
+}
+.markdown-body p:first-child {
+  margin-top: 0;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body pre {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.markdown-body code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.markdown-body li {
+  margin: 0.25em 0;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  margin: 0.6em 0 0.3em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 1.4em; }
+.markdown-body h2 { font-size: 1.25em; }
+.markdown-body h3 { font-size: 1.1em; }
+.markdown-body blockquote {
+  border-left: 4px solid #ddd;
+  color: #666;
+  margin: 0.5em 0;
+  padding: 0.25em 1em;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: 100%;
+  font-size: 0.9em;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  text-align: left;
+}
+.markdown-body th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+.markdown-body a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.markdown-body hr {
+  border: none;
+  border-top: 2px solid #eee;
+  margin: 1em 0;
+}
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 4px;
 }
 
-.bongo-iframe {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  width: 800px;
-  /* 使用视窗单位或固定值 */
-  height: 450px;
-  transform: scale(0.19) translate(45px, -7px);
-  transform-origin: right top;
-  border: none;
-  z-index: 10;
-}
 </style>

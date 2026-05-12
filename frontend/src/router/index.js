@@ -4,7 +4,6 @@ import HomePage from '../pages/homePage.vue';
 import LoginPage from '../pages/login.vue'
 import konwPage from '../pages/konwPage.vue'
 import UserService from '../api/user.js';
-import xxxPage from '../pages/xxx.vue'
 import { getAuthToken } from '../api/auth.js';
 const routes = [
   {
@@ -17,15 +16,10 @@ const routes = [
     name: 'homePage',
     component: HomePage
   },
-    {
+  {
     path: '/konw_page',
     name: 'konwPage',
     component: konwPage
-  },
- {
-    path: '/xxxPage',
-    name: 'xxxPage',
-    component: xxxPage
   },
 ]
 

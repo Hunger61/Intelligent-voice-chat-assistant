@@ -1,6 +1,6 @@
 # VocalChat API 文档
 
-> 更新时间：2026-05-10
+> 更新时间：2026-05-12
 > 依据代码：`backend/src/main/java/**`、`frontend/src/api/**`
 
 ---
@@ -16,6 +16,7 @@
   - [5.2 AI 助手模块](#52-ai-助手模块-api-aiassistant)
   - [5.3 知识库模块](#53-知识库模块-api-knowledge-base)
   - [5.4 推荐新增接口](#54-推荐新增接口)
+- [6. SSE 流式协议](#6-sse-流式协议)
 - [7. WebSocket 协议](#7-websocket-协议)
 - [8. 前端对接现状](#8-前端对接现状)
 - [9. 尚未完成的接口](#9-尚未完成的接口)
@@ -26,11 +27,11 @@
 
 | 项目 | 说明 |
 |------|------|
-| 基础 URL | `http://<host>:<port>`，无全局前缀 |
-| 鉴权方式 | JWT，通过 HTTP Header `Token` 传递 |
+| 基础 URL | `http://<host>:<port>`，REST 接口均位于 `/api/**` |
+| 鉴权方式 | JWT，HTTP 通过 `Token` Header 传递；WebSocket 通过 `token` 查询参数传递 |
 | 请求格式 | `application/json`（文件上传除外） |
 | 流式响应 | SSE（`text/event-stream`） |
-| 实时通信 | WebSocket `ws://<host>:<port>/ws/chat?token=<JWT>` |
+| 实时通信 | WebSocket `ws://<host>:<port>/ws/chat?token=<JWT>`（后端尚未完成，详见 §7） |
 
 ### 拦截器链
 
@@ -41,7 +42,7 @@
 | 0 | `RequestInterceptor` | 注入 `TRACE_ID` 到 MDC，记录请求耗时 |
 | 1 | `UserInterceptor` | 验证 `Token` Header 中的 JWT，将 `User` 写入 `UserContext` |
 
-- 方法标注 `@SkipToken` 时跳过鉴权。
+- 方法或类标注 `@SkipToken` 时跳过鉴权。
 - 鉴权失败返回 HTTP `401`，body 为 `"Unauthorized: Missing token"` 或 `"Unauthorized: User not found"`。
 
 ---
@@ -54,7 +55,7 @@
 
 ### Token 使用
 
-所有需要鉴权的请求在 HTTP Header 中携带：
+所有需要鉴权的 HTTP 请求在 Header 中携带：
 
 ```
 Token: <jwt_token_string>
@@ -81,7 +82,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 
 ### BaseResult\<T\>
 
-标注 `@AutoResult` 的方法，返回值自动包装：
+`BaseResultHandler`（`@RestControllerAdvice(basePackages = "host.hunger.vocalchat.api")`）扫描 `host.hunger.vocalchat.api` 下的接口，将标注 `@AutoResult` 的方法返回值统一包装：
 
 ```json
 {
@@ -123,7 +124,8 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 
 ### 兼容说明
 
-除 SSE 流式接口外，所有 REST 接口均标注 `@AutoResult`，响应统一包装为 `BaseResult`。前端通过 `_handleResponse` 兼容处理。
+- SSE 流式接口（`POST /api/aiAssistant/streamGenerateReply`）不经过 `@AutoResult` 包装，直接返回 `text/event-stream`。
+- 其他 REST 接口均标注 `@AutoResult`，前端 `_handleResponse` 统一兼容解析。
 
 ---
 
@@ -164,15 +166,6 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 }
 ```
 
-成功响应：
-
-```json
-{
-  "success": true,
-  "data": "eyJhbGciOiJIUzI1NiJ9..."
-}
-```
-
 可能错误码：`1001`、`1002`
 
 ---
@@ -188,15 +181,6 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 {
   "email": "string // 邮箱",
   "password": "string // 明文密码"
-}
-```
-
-成功响应：
-
-```json
-{
-  "success": true,
-  "data": "eyJhbGciOiJIUzI1NiJ9..."
 }
 ```
 
@@ -250,7 +234,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 
 ### 5.2 AI 助手模块 `/api/aiAssistant`
 
-> 注意：以下接口均标注 `@AutoResult`，响应自动包装为 `BaseResult`。SSE 流式接口不需要包装。路径前缀为 `/api/aiAssistant`（非 `/api/public/aiAssistant`）。
+> 注意：除 SSE 流式接口外，本节接口均标注 `@AutoResult`，响应自动包装为 `BaseResult`。路径前缀为 `/api/aiAssistant`（非 `/api/public/aiAssistant`）。
 
 #### `POST /createNewAssistant` — 创建助手
 
@@ -268,7 +252,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 }
 ```
 
-创建助手时自动生成初始空对话（Dialogue），返回新助手的 ID。
+创建助手时自动生成初始空对话（Dialogue）。
 
 ---
 
@@ -366,9 +350,18 @@ ws://<host>:<port>/ws/chat?token=<jwt_token_string>
 ```json
 {
   "question": "string // 用户问题",
-  "aiAssistantId": "string // 助手 ID"
+  "aiAssistantId": "string // 助手 ID",
+  "enableOnlineSearch": false,
+  "enableDeepThinking": false
 }
 ```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `question` | `String` | — | 用户问题，必填 |
+| `aiAssistantId` | `String` | — | 助手 ID，必填 |
+| `enableOnlineSearch` | `boolean` | `false` | 是否启用联网搜索 |
+| `enableDeepThinking` | `boolean` | `false` | 是否启用深度思考（thinking 流） |
 
 SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
@@ -397,6 +390,8 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 ```
 
 `messages` 为二维数组，每个元素 `[角色, 内容]`，角色取值 `USER` / `ASSISTANT`。
+
+> **前端状态**：当前 `message.js` 未使用该接口，由 SSE 流自动持久化对话；该接口主要作为外部补录入口保留。
 
 ---
 
@@ -455,8 +450,8 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
       "status": "ACTIVE",
       "documentCount": 5,
       "chunkCount": 128,
-      "createdAt": "2026-05-10T12:00:00",
-      "updatedAt": "2026-05-10T12:00:00"
+      "createdAt": "2026-05-12T12:00:00",
+      "updatedAt": "2026-05-12T12:00:00"
     }
   ]
 }
@@ -503,6 +498,8 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 |------|------|------|
 | `id` | `String` | 知识库 ID |
 
+删除前自动清除该知识库下的所有文件。
+
 ---
 
 #### 文件管理 `/api/knowledge-base/{id}/file`
@@ -532,8 +529,8 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
     "fileSize": 102400,
     "status": "COMPLETED",
     "chunkCount": 0,
-    "createdAt": "2026-05-10T12:00:00",
-    "updatedAt": "2026-05-10T12:00:00"
+    "createdAt": "2026-05-12T12:00:00",
+    "updatedAt": "2026-05-12T12:00:00"
   }
 }
 ```
@@ -569,21 +566,23 @@ SSE 事件详见 [第 6 节](#6-sse-流式协议)。
 
 以下接口基于三个维度综合建议：
 
-1. **前端 stub 分析**：`knowledge.js` 全部 11 个方法、`message.js` 中 2 个方法、`assistant.js` 中 2 个方法均抛出 "未实现" 错误
-2. **领域模型储备**：`KnowledgeBase`、`SpeechProcessor`、`Session` 等聚合根已建模但无 API 暴露
-3. **功能闭环需要**：用户自助管理（改密/改资料）、语音功能扩展等
+1. **领域模型储备**：`SpeechProcessor`、`Session` 等聚合根已建模但无 API 暴露。
+2. **功能闭环**：用户自助管理（改密 / 改资料）、语音聊天等。
+3. **运维可观测**：健康检查、依赖状态。
+
+> 当前前端 `assistant.js`、`knowledge.js`、`message.js`、`user.js` 已全部对接后端实际接口，未再使用占位 stub。
 
 ---
 
 #### 5.4.1 语音聊天 WebSocket（建议 `/ws/speech`）
 
-语音聊天通过 WebSocket 直连 Java 后端，不走外部 WebRTC 服务。
+语音聊天通过 WebSocket 直连 Java 后端，不再走外部 WebRTC 服务。
 
 ```
 ws://<host>:<port>/ws/speech?token=<jwt_token>
 ```
 
-**客户端 → 服务端（二进制/JSON）:**
+**客户端 → 服务端（二进制 / JSON）：**
 
 | 消息类型 | 说明 |
 |----------|------|
@@ -591,7 +590,7 @@ ws://<host>:<port>/ws/speech?token=<jwt_token>
 | `{type: "config", ...}` | LLM 和 TTS 配置参数 |
 | `{type: "hangup"}` | 挂断通话 |
 
-**服务端 → 客户端:**
+**服务端 → 客户端：**
 
 | 消息类型 | 说明 |
 |----------|------|
@@ -603,7 +602,7 @@ ws://<host>:<port>/ws/speech?token=<jwt_token>
 
 **链路：** 浏览器麦克风 → WebSocket 音频帧 → 后端 ASR → LLM → TTS → WebSocket 音频帧 → 浏览器播放
 
-已有基础：`SpeechDomainService` 接口已定义（`TextToSpeech`、`registerSpeechProcessor`），`TextToSpeechApplicationService` 已监听 `QuestionAnsweredEvent` 自动触发生成。`AudioQuestionDTO` 已定义但未被任何 Controller 引用。
+已有基础：`SpeechDomainService` 接口已定义（`TextToSpeech`、`registerSpeechProcessor`），`TextToSpeechApplicationService` 已监听 `QuestionAnsweredEvent` 自动触发生成。`AudioQuestionDTO` 已定义但尚未被任何 Controller 引用。
 
 ---
 
@@ -639,7 +638,7 @@ ws://<host>:<port>/ws/speech?token=<jwt_token>
 
 | 方法 | 路径 | 说明 | 优先级 |
 |------|------|------|--------|
-| `GET` | `/api/health` | 健康检查（返回数据库/Redis/MinIO 连接状态） | 低 |
+| `GET` | `/api/health` | 健康检查（返回数据库 / Redis / MinIO 连接状态） | 低 |
 
 ---
 
@@ -659,12 +658,13 @@ Accept: text/event-stream
 |--------|------|----------|
 | `started` | `"invoked"` | 请求已被接收，开始处理 |
 | `heartbeat` | `"ping"` | 每 15 秒，保持连接活跃 |
+| `thinking` | thinking 文本或 `""` | 启用 `enableDeepThinking` 时，深度思考链中间过程 |
 | `token` | token 文本或 `""` | LLM 每输出一个 token |
-| `fallback` | `"true"` | 主模型失败，切换到备用方案 |
+| `fallback` | `"true"` | 主模型失败，切换到备用方案（token 流中插入此事件） |
 | `done` | `"complete"` | 完整回复已推送并持久化 |
 | `error` | 异常信息或 `"timeout"` | 异常发生（`"timeout"` = 30 分钟超时） |
 
-### 典型事件流
+### 典型事件流（不开启深度思考）
 
 ```
 event:started
@@ -689,6 +689,25 @@ event:done
 data:complete
 ```
 
+### 典型事件流（开启深度思考）
+
+```
+event:started
+data:invoked
+
+event:thinking
+data:用户问候我，应当友好回应...
+
+event:token
+data:你好
+
+event:token
+data:！
+
+event:done
+data:complete
+```
+
 ### 连接参数
 
 | 参数 | 值 |
@@ -700,7 +719,7 @@ data:complete
 
 ## 7. WebSocket 协议
 
-> **注意**：本项目纯文本聊天主要走 SSE（`POST /api/aiAssistant/streamGenerateReply`），不走 WebSocket。以下 WebSocket 协议为辅助通道，后端暂未完整实现，优先级较低。
+> **注意**：纯文本聊天已经统一走 SSE（`POST /api/aiAssistant/streamGenerateReply`），不再使用 WebSocket。本节描述的 `/ws/chat` 端点已在 `FrontEndWebSocketConfig` 中注册，但 `FrontEndWebSocketHandler` 的核心方法（`handleGenerateCommand`、`afterConnectionClosed` 等）仍标注 `//todo`，**未投入生产**。前端旧 `websocket.js` / `sendCommands.js` 已删除。
 
 ### 端点
 
@@ -709,7 +728,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 ```
 
 - 所有来源允许（Origin `*`）。
-- 握手阶段鉴权，失败返回 401 并拒绝连接。
+- 握手阶段鉴权（`FrontEndWebSocketInterceptor`），失败返回 401 并拒绝连接。
 - 连接建立后 Session 注册到 `WebSocketSessionManager`（UserId ↔ Session 双向映射）。
 
 ### 客户端 → 服务端（Command）
@@ -734,7 +753,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 }
 ```
 
-> **状态**：`generate` 的实际 LLM 调用被注释（`FrontEndWebSocketHandler:102 //todo`），当前请使用 SSE `POST /streamGenerateReply`。
+> **状态**：`generate` 的实际 LLM 调用被注释（`FrontEndWebSocketHandler:102 //todo`）。请改用 SSE `POST /streamGenerateReply`。
 
 ### 服务端 → 客户端（Event）
 
@@ -765,13 +784,21 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 
 | 前端文件 | 方法 | 后端接口 | 状态 |
 |----------|------|----------|------|
-| `user.js` | `getUserInfo()` | `GET /api/public/user/info` | 正常 |
+| `auth.js` | `setAuthToken()` / `getAuthToken()` / `clearAuthToken()` | （本地 localStorage） | 正常 |
+| `auth.js` | `decodeUserIdFromToken()` | （本地 JWT payload 解析） | 正常 |
+| `user.js` | `register()` | `POST /api/public/user/register` | 正常 |
+| `user.js` | `login()` | `POST /api/public/user/login` | 正常 |
+| `user.js` | `getVerificationCode()` | `POST /api/public/user/getVerificationCode` | 正常 |
+| `user.js` | `logout()` | `POST /api/public/user/logout` | 正常 |
+| `user.js` | `getCurrentUserFromToken()` | （本地解码，未调后端 `/info`） | 正常 |
 | `assistant.js` | `add()` | `POST /api/aiAssistant/createNewAssistant` | 正常 |
 | `assistant.js` | `findAll()` | `GET /api/aiAssistant/aiAssistants` | 正常 |
-| `assistant.js` | `streamGenerateReply()` | `POST /api/aiAssistant/streamGenerateReply` | 正常 |
-| `assistant.js` | `getConversationLog()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常 |
 | `assistant.js` | `modifyCommon()` | `POST /api/aiAssistant/modifyAssistantConfig` | 正常 |
 | `assistant.js` | `delete()` | `DELETE /api/aiAssistant/deleteAssistant` | 正常 |
+| `assistant.js` | `getConversationLog()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常 |
+| `assistant.js` | `streamGenerateReply()` | `POST /api/aiAssistant/streamGenerateReply` | 正常（SSE） |
+| `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
+| `message.js` | `resetHistory()` | `DELETE /api/aiAssistant/{id}/conversation-log` | 正常 |
 | `knowledge.js` | `createKnowledgeBase()` | `POST /api/knowledge-base` | 正常 |
 | `knowledge.js` | `getKnowledgeBasesByUserId()` | `GET /api/knowledge-base` | 正常 |
 | `knowledge.js` | `getKnowledgeBase()` | `GET /api/knowledge-base/{id}` | 正常 |
@@ -784,9 +811,13 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 | `knowledge.js` | `addFilesToKnowledgeBase()` | `POST /api/knowledge-base/{id}/file`（批量） | 正常（复用 uploadFile） |
 | `knowledge.js` | `removeFilesFromKnowledgeBase()` | `DELETE /api/knowledge-base/{id}/file/{fileId}`（批量） | 正常（复用 deleteFile） |
 | `knowledge.js` | `getKnowledgeBaseJobStatus()` | `GET /api/knowledge-base/{id}/file/{fileId}/status` | 正常（复用 getFileStatus） |
-| `message.js` | `findMessagesByPage()` | `GET /api/aiAssistant/{id}/conversation-log` | 正常（复用） |
-| `message.js` | `addMessages()` | `POST /api/aiAssistant/{id}/conversation` | 正常 |
-| `message.js` | `resetHistory()` | `DELETE /api/aiAssistant/{id}/conversation-log` | 正常 |
+
+### 后端已实现但前端未调用
+
+| 后端接口 | 说明 |
+|----------|------|
+| `GET /api/public/user/info` | 当前用户信息接口，前端目前仅靠 JWT 本地解码获取用户 ID。如需展示昵称 / 邮箱，应在 `user.js` 增补 `getUserInfo()`。 |
+| `POST /api/aiAssistant/{id}/conversation` | 追加会话消息，目前由 SSE 自动持久化对话，无需前端再次调用。 |
 
 ---
 
@@ -794,9 +825,9 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 
 ### 9.1 WebSocket `/ws/chat` — 后端未完成（优先级低）
 
-> **说明**：纯文本聊天已走 SSE（`POST /api/aiAssistant/streamGenerateReply`），WebSocket 为辅助通道，暂不实现。
+> **说明**：纯文本聊天已走 SSE，WebSocket 为辅助通道，暂不实现。
 
-文件: `backend/.../api/websocket/handler/FrontEndWebSocketHandler.java`
+文件：`backend/.../api/websocket/handler/FrontEndWebSocketHandler.java`
 
 | 方法 | 行号 | 状态 |
 |------|------|------|
@@ -809,7 +840,7 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 
 ### 9.2 语音聊天 WebSocket — 待实现
 
-语音聊天走 WebSocket 直连 Java 后端（不走外部 WebRTC 服务）：
+语音聊天走 WebSocket 直连 Java 后端（不再走外部 WebRTC 服务）：
 
 ```
 浏览器麦克风 → WebSocket 音频帧 → 后端 ASR → LLM → TTS → WebSocket 音频帧 → 浏览器播放
@@ -832,18 +863,18 @@ ws://<host>:<port>/ws/chat?token=<jwt_token>
 |------|------|
 | `ExternalWebSocketHandler.java` | 外部语音服务 WebSocket 客户端，整体 `//todo` |
 | `ExternalSpeechDomainService.java` | `TextToSpeech` 方法标记 `//todo` |
-| `frontend/src/assets/js/webRTCAll.js` | 前端 WebRTC 客户端，改为 WebSocket 直传音频 |
+| `frontend/src/assets/js/webRTCAll.js` | 前端 WebRTC 客户端，待改为 WebSocket 直传音频 |
 
 ### 9.3 领域事件监听器 — 未完成
 
-文件: `backend/.../api/websocket/event/DomainEventListener.java`
+文件：`backend/.../api/websocket/event/DomainEventListener.java`
 
 | 问题 | 行号 | 说明 |
 |------|------|------|
 | 类级别 `//todo` | L16 | 整体待完善 |
-| `chat_id` 硬编码 | L26 | `AnswerEvent` 的 `chat_id` 固定为 `"1"`，无法区分不同对话 |
-| `UserId` 类型 todo | L35 | `sendMessage` 调用处标记 `//todo UserId` |
+| `chat_id` 硬编码 | L25 | `AnswerEvent` 的 `chat_id` 固定为 `"1"`，无法区分不同对话 |
+| `UserId` 类型 todo | L33 | `sendMessage` 调用处标记 `//todo UserId` |
 
-### 9.4 前端旧 WebSocket 代码 — 待清理
+### 9.4 前端旧 WebSocket 代码 — 已清理
 
-`frontend/src/assets/js/websocket.js` 和 `sendCommands.js` 连接的 `ws://localhost:9090/ai_assistant/text_chat` 文本聊天服务已由 SSE 替代，相关旧代码待清理。
+> 2026-05-12：`frontend/src/assets/js/websocket.js`、`sendCommands.js`、`textMatter.js` 以及 `pages/textPage.vue`、`pages/xxx.vue` 与 `public/bongo.cat-master/` 均已删除，相关路由和 Vuex 死代码（`setTextMessageTime` mutation、`showClickSuccessMessage` / `showClickErrMessage` 等）一并清理。

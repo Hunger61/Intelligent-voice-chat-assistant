@@ -154,16 +154,6 @@ const store = createStore({
             state.txetMessageContent = txetMessageContent;
             return;
         },
-        setTextMessageTime(state, message) {
-            state.txetMessageContent.play_id = message.id
-            state.txetMessageContent.content = '';
-            state.txetMessageContent.time = message.time
-
-            return;
-        },
-
-
-
         //切换是否发送聊天消息，方便监听
         setIsHaveNewMessage(state, isHave) {
             state.isHaveNewMessage = isHave
