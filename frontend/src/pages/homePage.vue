@@ -745,7 +745,7 @@ import draggable from 'vuedraggable'//助手列表拖动
 const localAssistants = ref([])
 
 import { renderMarkdown } from '../utils/markdown.js';
-import { toggleMicrophone, startVoiceChat, endVoiceChat, sendInterrupt, setAudioDataCallback } from '../assets/js/voiceChat.js'
+import { toggleMicrophone, startVoiceChat, endVoiceChat, sendInterrupt as sendVoiceInterrupt, setAudioDataCallback } from '../assets/js/voiceChat.js'
 import AssistantService from '../api/assistant.js'; //ai助手增删改查的api调用封装
 import MessageService from '../api/message.js'; //聊天信息api调用封装
 import KnowledgeService from '../api/knowledge.js';
