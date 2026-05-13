@@ -54,3 +54,4 @@ dist-ssr/
 CLAUDE.md
 .mcp.json
 .claude/settings.local.json
+DEV_GUIDE.md

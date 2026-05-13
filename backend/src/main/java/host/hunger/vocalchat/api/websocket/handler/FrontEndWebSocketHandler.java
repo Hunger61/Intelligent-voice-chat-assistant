@@ -121,11 +121,7 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
     }
 
     private void handleVoiceSessionJoinCommand(WebSocketSession session, VoiceSessionJoinCommand command) {
-        String aiAssistantId = command.getAiAssistantId();
-        if (aiAssistantId == null || aiAssistantId.trim().isEmpty()) {
-            throw new VoiceChatException("AI_ASSISTANT_NOT_FOUND", "AI 助手 ID 为空", true);
-        }
-        AIAssistant aiAssistant = aiAssistantApplicationService.getAIAssistantById(new AIAssistantId(aiAssistantId));
+        AIAssistant aiAssistant = aiAssistantApplicationService.getAIAssistantById(new AIAssistantId(command.getAiAssistantId()));
         session.getAttributes().put("aiAssistant", aiAssistant);
     }
 }
