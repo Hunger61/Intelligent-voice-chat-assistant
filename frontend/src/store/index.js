@@ -36,7 +36,14 @@ const store = createStore({
         lastMessageTime: null, // 用于存储最后一次收到消息的时间戳
 
         isbackGround: false,
-        speaker: '101001'
+        speaker: '101001',
+
+        // ---- voice chat state ----
+        pipelineState: 'IDLE',       // IDLE | LISTENING | THINKING | SPEAKING
+        asrInterimText: '',          // partial ASR text for UI display
+        llmStreamingContent: '',     // streaming assistant response
+        llmThinkingContent: '',      // streaming deep-thinking tokens
+        isTtsPlaying: false,         // TTS audio playback active
 
     },
     mutations: {
@@ -607,6 +614,50 @@ const store = createStore({
             state.oldMessageIndex = score
         },
 
+        // ---- voice chat mutations ----
+        setPipelineState(state, pipelineState) {
+            state.pipelineState = pipelineState
+        },
+        setAsrInterimText(state, text) {
+            state.asrInterimText = text
+        },
+        appendLlmToken(state, token) {
+            state.llmStreamingContent += token
+        },
+        appendLlmThinking(state, token) {
+            state.llmThinkingContent += token
+        },
+        finalizeLlmMessage(state, { fullText, chatId, dialogueId }) {
+            state.llmStreamingContent = ''
+            state.llmThinkingContent = ''
+            if (fullText && fullText.trim()) {
+                // add the completed assistant message
+                const conversation = state.newMessage.find(item => item.id === state.selectedId)
+                if (conversation && Array.isArray(conversation.messages)) {
+                    conversation.messages.push({
+                        assistantId: state.selectedId,
+                        role: 'assistant',
+                        content: fullText,
+                        chatId: chatId
+                    })
+                } else {
+                    state.newMessage.push({
+                        id: state.selectedId,
+                        messages: [{
+                            assistantId: state.selectedId,
+                            role: 'assistant',
+                            content: fullText,
+                            chatId: chatId
+                        }]
+                    })
+                }
+                state.isHaveNewMessage = true
+            }
+        },
+        setTtsPlaying(state, playing) {
+            state.isTtsPlaying = playing
+        },
+
     },
     actions: {
         // 异步操作和业务逻辑
@@ -672,6 +723,13 @@ const store = createStore({
             const conversation = state.oldMessage.find(item => item.id === id);
             return conversation ? conversation.messages.length : 0;
         },
+
+        // ---- voice chat getters ----
+        getPipelineState: state => state.pipelineState,
+        getAsrInterimText: state => state.asrInterimText,
+        getLlmStreamingContent: state => state.llmStreamingContent,
+        getLlmThinkingContent: state => state.llmThinkingContent,
+        getIsTtsPlaying: state => state.isTtsPlaying,
 
     },
     modules: {

@@ -1,4 +1,4 @@
-import { setAudioDataCallback } from './webRTCAll'
+import { setAudioDataCallback } from './voiceChat'
 import gsap from 'gsap';
 
 let bars = [];

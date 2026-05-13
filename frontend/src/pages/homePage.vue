@@ -745,7 +745,7 @@ import draggable from 'vuedraggable'//助手列表拖动
 const localAssistants = ref([])
 
 import { renderMarkdown } from '../utils/markdown.js';
-import { toggleMicrophone, WebRTC, closeWebRTC } from '../assets/js/webRTCAll.js'  //webRTC
+import { toggleMicrophone, startVoiceChat, endVoiceChat, sendInterrupt, setAudioDataCallback } from '../assets/js/voiceChat.js'
 import AssistantService from '../api/assistant.js'; //ai助手增删改查的api调用封装
 import MessageService from '../api/message.js'; //聊天信息api调用封装
 import KnowledgeService from '../api/knowledge.js';
@@ -935,7 +935,7 @@ watch(
 function handleBeforeUnload() {
   if (store.getters.getIsCallActive) {
     //关闭连接
-    closeWebRTC();
+    endVoiceChat();
     //把缓存的消息存入数据库
     let newMessage = store.getters.getNewMessageContent;
     if (newMessage && typeof newMessage.content === 'string' && newMessage.content.trim() !== '') {
@@ -1411,21 +1411,8 @@ const callTimeDisplay = computed(() => {
 
 // 通话状态切换
 const toggleCall = () => {
-
-  store.commit('setIsCallActive', !store.getters.getIsCallActive)
-
   if (store.getters.getIsCallActive) {
-
-    WebRTC(store);
-    soundEffect.play('play')
-  } else {
-
-    if (store.getters.getIsHaveVoice) {
-      store.commit('setIsHaveVoice', !toggleMicrophone())
-    }
-    stopCallTimer();
-    store.commit('setIsHaveNewMessage', false)
-    closeWebRTC();
+    endVoiceChat()
     hide.value = false
     let newMessage = store.getters.getNewMessageContent;
     if (newMessage && typeof newMessage.content === 'string' && newMessage.content.trim() !== '') {
@@ -1438,10 +1425,11 @@ const toggleCall = () => {
         id: store.getters.getSelectedId
       })
     }
-
     store.commit('clearNewMessageContent')
-
     store.commit('addClosenewMessagebyId', store.getters.getSelectedId)
+  } else {
+    startVoiceChat()
+    soundEffect.play('play')
   }
 };
 

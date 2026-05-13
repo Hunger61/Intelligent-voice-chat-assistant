@@ -15,7 +15,7 @@ export default defineConfig({
         changeOrigin: true, // 关键：是否修改请求头的 Origin 为 target 域名
         // rewrite: (path) => path.replace(/^\/api/, ''), // 可选：去掉路径中的 /api 前缀
         // 其他可选配置
-        // ws: true, // 代理 WebSocket（如实时通信）
+        ws: true, // 代理 WebSocket
         secure: false, // 若 target 是 https，是否验证 SSL 证书（开发环境建议 false）
       },
     }
