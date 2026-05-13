@@ -10,10 +10,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "command"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ConfigureLLMCommand.class, name = "start_llm"),
-        @JsonSubTypes.Type(value = GenerateCommand.class, name = "generate"),
+        @JsonSubTypes.Type(value = VoiceSessionJoinCommand.class, name = "voice.session.join"),
+        @JsonSubTypes.Type(value = VoiceSessionLeaveCommand.class, name = "voice.session.leave"),
+        @JsonSubTypes.Type(value = VoiceInterruptCommand.class, name = "voice.interrupt"),
+        @JsonSubTypes.Type(value = VoiceMuteCommand.class, name = "voice.mute"),
+        @JsonSubTypes.Type(value = VoiceUnmuteCommand.class, name = "voice.unmute"),
 })
 public abstract class Command {
     @JsonProperty("command")
     protected String command;
+
+    @JsonProperty("seq")
+    protected Long seq;
 }

@@ -4,8 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import host.hunger.vocalchat.domain.event.QuestionReceivedEvent;
 import host.hunger.vocalchat.domain.event.DomainEventPublisher;
+import host.hunger.vocalchat.domain.model.user.UserId;
+import host.hunger.vocalchat.domain.repository.SpeechProcessorRepository;
 import host.hunger.vocalchat.infrastructure.external.speech.event.*;
-import host.hunger.vocalchat.infrastructure.websocket.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,7 @@ import org.springframework.web.socket.*;
 //todo
 public class ExternalWebSocketHandler implements WebSocketHandler {
 
-    private final WebSocketSessionManager webSocketSessionManager;
+    private final SpeechProcessorRepository speechProcessorRepository;
     private final ObjectMapper objectMapper;
     private final DomainEventPublisher domainEventPublisher;
     @Override
@@ -93,7 +94,10 @@ public class ExternalWebSocketHandler implements WebSocketHandler {
 
     private void handleAsrFinalEvent(WebSocketSession session, AsrFinalEvent event) {
         if (event.getText() != null && !event.getText().isBlank()) {
-            domainEventPublisher.publish(new QuestionReceivedEvent(event.getText(),webSocketSessionManager.getUserId(session)));
+            UserId userId = (UserId) session.getAttributes().get("userId");
+            if (userId != null) {
+                domainEventPublisher.publish(new QuestionReceivedEvent(event.getText(), userId));
+            }
         }
     }
 

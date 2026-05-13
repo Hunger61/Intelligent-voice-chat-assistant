@@ -1,6 +1,7 @@
 package host.hunger.vocalchat.infrastructure.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import host.hunger.vocalchat.api.websocket.event.VoiceErrorEvent;
 import host.hunger.vocalchat.domain.model.user.UserId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,7 @@ import org.springframework.web.socket.WebSocketSession;
 public class WebSocketMessageSender {
 
     private final WebSocketSessionManager sessionManager;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public void sendMessage(UserId userId, Object message) {
         WebSocketSession session = sessionManager.getSession(userId);
@@ -26,17 +27,16 @@ public class WebSocketMessageSender {
     }
 
     public void sendMessage(WebSocketSession session, Object message) {
-        if (session != null) {
-            try {
-                String jsonMessage = objectMapper.writeValueAsString(message);
-                session.sendMessage(new TextMessage(jsonMessage));
-            } catch (Exception e) {
-                log.error("Failed to send message:",e);
-            }
+        if (session == null) return;
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            session.sendMessage(new TextMessage(jsonMessage));
+        } catch (Exception e) {
+            log.error("Failed to send message:", e);
         }
     }
 
-    public void sendErrorMessage(UserId userId, String errorMessage) {
-        sendMessage(userId, errorMessage);
+    public void sendErrorMessage(UserId userId, String code, String message, boolean recoverable) {
+        sendMessage(userId, new VoiceErrorEvent(null, code, message, recoverable));
     }
 }
