@@ -8,6 +8,7 @@ import host.hunger.vocalchat.api.websocket.command.VoiceMuteCommand;
 import host.hunger.vocalchat.api.websocket.command.VoiceSessionJoinCommand;
 import host.hunger.vocalchat.api.websocket.command.VoiceSessionLeaveCommand;
 import host.hunger.vocalchat.api.websocket.command.VoiceUnmuteCommand;
+import host.hunger.vocalchat.api.websocket.event.VoiceChatException;
 import host.hunger.vocalchat.application.service.AIAssistantApplicationService;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistant;
 import host.hunger.vocalchat.domain.model.aiassistant.AIAssistantId;
@@ -59,63 +60,70 @@ public class FrontEndWebSocketHandler implements WebSocketHandler {
         return false;
     }
 
-    //todo
-    private void handleTextMessage(WebSocketSession session,TextMessage message){
+    private void handleTextMessage(WebSocketSession session, TextMessage message) {
         log.info("Received message: {}", message.getPayload());
         try {
             Command command = objectMapper.readValue(message.getPayload(), Command.class);
-            if (command instanceof VoiceSessionJoinCommand){
-                handleVoiceSessionJoinCommand(session, (VoiceSessionJoinCommand)command);
-            } else if(command instanceof VoiceSessionLeaveCommand){
-                handleVoiceSessionLeaveCommand(session,(VoiceSessionLeaveCommand)command);
-            }else if(command instanceof VoiceInterruptCommand){
-                handleVoiceInterruptCommand(session,(VoiceInterruptCommand)command);
-            }else if(command instanceof VoiceMuteCommand){
-                handleVoiceMuteCommand(session,(VoiceMuteCommand)command);
-            }else if(command instanceof VoiceUnmuteCommand){
-                handleVoiceUnmuteCommand(session,(VoiceUnmuteCommand)command);
-            }else {
-                log.error("Unknown command: {}", command);
+            if (command instanceof VoiceSessionJoinCommand) {
+                handleVoiceSessionJoinCommand(session, (VoiceSessionJoinCommand) command);
+            } else if (command instanceof VoiceSessionLeaveCommand) {
+                handleVoiceSessionLeaveCommand(session, (VoiceSessionLeaveCommand) command);
+            } else if (command instanceof VoiceInterruptCommand) {
+                handleVoiceInterruptCommand(session, (VoiceInterruptCommand) command);
+            } else if (command instanceof VoiceMuteCommand) {
+                handleVoiceMuteCommand(session, (VoiceMuteCommand) command);
+            } else if (command instanceof VoiceUnmuteCommand) {
+                handleVoiceUnmuteCommand(session, (VoiceUnmuteCommand) command);
+            } else {
+                throw new VoiceChatException("UNKNOWN_COMMAND", "未知命令", true);
             }
+        } catch (VoiceChatException e) {
+            log.warn("Business error: [{}] {}", e.getCode(), e.getMessage());
+            sendEvent(session, e.toEvent());
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.warn("Failed to parse message: {}", message.getPayload(), e);
+            sendEvent(session, new VoiceChatException("INVALID_JSON", "消息格式错误", true).toEvent());
+        } catch (Exception e) {
+            log.error("Error processing command", e);
+            sendEvent(session, new VoiceChatException("INTERNAL_ERROR", "服务内部错误", false).toEvent());
         }
     }
 
-        //todo
-    private void handlePingMessage(PingMessage message){
-
+    private void handlePingMessage(PingMessage message) {
     }
-    //todo
-    private void handlePongMessage(PongMessage message){
 
+    private void handlePongMessage(PongMessage message) {
+    }
+
+    private void sendEvent(WebSocketSession session, Object event) {
+        try {
+            String json = objectMapper.writeValueAsString(event);
+            session.sendMessage(new TextMessage(json));
+        } catch (Exception e) {
+            log.error("Failed to send event", e);
+        }
     }
 
     private void handleVoiceUnmuteCommand(WebSocketSession session, VoiceUnmuteCommand command) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleVoiceUnmuteCommand'");
+        throw new VoiceChatException("NOT_IMPLEMENTED", "取消静音功能待实现", true);
     }
 
     private void handleVoiceMuteCommand(WebSocketSession session, VoiceMuteCommand command) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleVoiceMuteCommand'");
+        throw new VoiceChatException("NOT_IMPLEMENTED", "静音功能待实现", true);
     }
 
     private void handleVoiceInterruptCommand(WebSocketSession session, VoiceInterruptCommand command) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleVoiceInterruptCommand'");
+        throw new VoiceChatException("NOT_IMPLEMENTED", "打断功能待实现", true);
     }
 
     private void handleVoiceSessionLeaveCommand(WebSocketSession session, VoiceSessionLeaveCommand command) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleVoiceSessionLeaveCommand'");
+        throw new VoiceChatException("NOT_IMPLEMENTED", "离开会话功能待实现", true);
     }
 
     private void handleVoiceSessionJoinCommand(WebSocketSession session, VoiceSessionJoinCommand command) {
         String aiAssistantId = command.getAiAssistantId();
         if (aiAssistantId == null || aiAssistantId.trim().isEmpty()) {
-            log.error("AI Assistant ID is null or empty in StartLLMCommand");
-            return;
+            throw new VoiceChatException("AI_ASSISTANT_NOT_FOUND", "AI 助手 ID 为空", true);
         }
         AIAssistant aiAssistant = aiAssistantApplicationService.getAIAssistantById(new AIAssistantId(aiAssistantId));
         session.getAttributes().put("aiAssistant", aiAssistant);
