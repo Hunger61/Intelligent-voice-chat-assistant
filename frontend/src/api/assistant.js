@@ -131,7 +131,7 @@ class AssistantService {
     return this._handleResponse(response);
   }
 
-  static async streamGenerateReply({ question, aiAssistantId, enableOnlineSearch, enableDeepThinking, signal, onStarted, onToken, onFallback, onThinking, onDone, onError }) {
+  static async streamGenerateReply({ question, aiAssistantId, enableOnlineSearch, enableDeepThinking, signal, onStarted, onToken, onFallback, onThinking, onAgentThinking, onAgentToolCall, onAgentToolResult, onDone, onError }) {
     const token = getAuthToken();
     const response = await fetch('/api/aiAssistant/streamGenerateReply', {
       method: 'POST',
@@ -169,11 +169,22 @@ class AssistantService {
       }
       const payload = dataLines.join('\n');
       if (eventName === 'started' && onStarted) onStarted(payload);
-      if (eventName === 'token' && onToken) onToken(payload);
-      if (eventName === 'thinking' && onThinking) onThinking(payload);
-      if (eventName === 'fallback' && onFallback) onFallback(payload);
-      if (eventName === 'done' && onDone) onDone(payload);
-      if (eventName === 'error' && onError) onError(payload);
+      else if (eventName === 'token' && onToken) onToken(payload);
+      else if (eventName === 'thinking' && onThinking) onThinking(payload);
+      else if (eventName === 'fallback' && onFallback) onFallback(payload);
+      else if (eventName === 'agent_thinking' && onAgentThinking) onAgentThinking(payload);
+      else if (eventName === 'agent_tool_call') {
+        if (onAgentToolCall) {
+          try { onAgentToolCall(JSON.parse(payload)); } catch { onAgentToolCall(payload); }
+        }
+      }
+      else if (eventName === 'agent_tool_result') {
+        if (onAgentToolResult) {
+          try { onAgentToolResult(JSON.parse(payload)); } catch { onAgentToolResult(payload); }
+        }
+      }
+      else if (eventName === 'done' && onDone) onDone(payload);
+      else if (eventName === 'error' && onError) onError(payload);
     };
 
     while (true) {
@@ -186,6 +197,113 @@ class AssistantService {
         if (eventChunk.trim()) emitEvent(eventChunk);
       }
     }
+  }
+
+  /**
+   * Agent 流式执行 (SSE) — 与 streamGenerateReply 相同的事件模型 + Agent 事件
+   */
+  static async agentStream({ question, aiAssistantId, enableOnlineSearch, enableDeepThinking, signal, onStarted, onToken, onThinking, onAgentThinking, onAgentToolCall, onAgentToolResult, onDone, onError }) {
+    const token = getAuthToken();
+    const response = await fetch('/api/aiAssistant/agentStream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      },
+      body: JSON.stringify({
+        question,
+        aiAssistantId,
+        enableOnlineSearch: enableOnlineSearch || false,
+        enableDeepThinking: enableDeepThinking || false
+      }),
+      signal
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // 复用相同的 SSE 解析逻辑
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const emitEvent = (chunk) => {
+      const lines = chunk.split('\n');
+      let eventName = 'message';
+      const dataLines = [];
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).trim());
+        }
+      }
+      const payload = dataLines.join('\n');
+      if (eventName === 'started' && onStarted) onStarted(payload);
+      else if (eventName === 'token' && onToken) onToken(payload);
+      else if (eventName === 'thinking' && onThinking) onThinking(payload);
+      else if (eventName === 'agent_thinking' && onAgentThinking) onAgentThinking(payload);
+      else if (eventName === 'agent_tool_call') {
+        if (onAgentToolCall) {
+          try { onAgentToolCall(JSON.parse(payload)); } catch { onAgentToolCall(payload); }
+        }
+      }
+      else if (eventName === 'agent_tool_result') {
+        if (onAgentToolResult) {
+          try { onAgentToolResult(JSON.parse(payload)); } catch { onAgentToolResult(payload); }
+        }
+      }
+      else if (eventName === 'done' && onDone) onDone(payload);
+      else if (eventName === 'error' && onError) onError(payload);
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      for (const eventChunk of events) {
+        if (eventChunk.trim()) emitEvent(eventChunk);
+      }
+    }
+  }
+
+  /**
+   * Agent 同步执行
+   */
+  static async agentRun({ question, aiAssistantId, enableOnlineSearch, enableDeepThinking }) {
+    const token = getAuthToken();
+    const response = await fetch('/api/aiAssistant/agentRun', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      },
+      body: JSON.stringify({
+        question,
+        aiAssistantId,
+        enableOnlineSearch: enableOnlineSearch || false,
+        enableDeepThinking: enableDeepThinking || false
+      })
+    });
+    return this._handleResponse(response);
+  }
+
+  /**
+   * 获取可用工具列表
+   */
+  static async getTools() {
+    const token = getAuthToken();
+    const response = await fetch('/api/aiAssistant/tools', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Token: token } : {})
+      }
+    });
+    return this._handleResponse(response);
   }
 
   /**

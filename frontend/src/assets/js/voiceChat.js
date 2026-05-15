@@ -169,7 +169,7 @@ export async function startVoiceChat() {
     store.commit('setIsCallActive', true)
 
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${location.host}/ws/chat?token=${token}`
+    const wsUrl = `${protocol}//${location.host}/ws/speech?token=${token}`
     ws = new WebSocket(wsUrl)
     ws.binaryType = 'arraybuffer'
 
@@ -290,8 +290,53 @@ function handleTextFrame(data) {
             }
             break
 
+        // ---- agent events (voice channel) ----
+        case 'agent_thinking':
+            store.commit('setIsAgentActive', true)
+            store.commit('addAgentStep', { type: 'thinking', content: payload.text })
+            break
+
+        case 'agent_tool_call':
+            store.commit('addAgentStep', { type: 'tool_call', tool: payload.tool, args: payload.args })
+            break
+
+        case 'agent_tool_result':
+            store.commit('updateLastAgentStep', { type: 'tool_result', result: payload.summary, success: payload.success !== false })
+            break
+
+        case 'agent_complete':
+            store.commit('setIsAgentActive', false)
+            break
+
+        // ---- reactive events ----
+        case 'reactive_event':
+            handleReactiveEvent(payload)
+            break
+
         default:
             console.log('Unknown event:', eventType)
+    }
+}
+
+function handleReactiveEvent(payload) {
+    if (!payload || !payload.event) return
+    switch (payload.event) {
+        case 'browser_color_change':
+            // ThemeTool 触发深色/亮色切换
+            if (payload.mode === 'dark') {
+                store.commit('setIsbackGround', true)
+            } else if (payload.mode === 'light') {
+                store.commit('setIsbackGround', false)
+            }
+            break
+        case 'change_speaker':
+            // TTS 音色切换
+            if (payload.speaker) {
+                store.commit('setSpeaker', payload.speaker)
+            }
+            break
+        default:
+            console.log('Unknown reactive event:', payload.event)
     }
 }
 
@@ -382,6 +427,8 @@ function cleanup() {
     store.commit('setIsHaveVoice', false)
     store.commit('setPipelineState', 'IDLE')
     store.commit('setTtsPlaying', false)
+    store.commit('setIsAgentActive', false)
+    store.commit('clearAgentSteps')
     stopCallTimer()
 }
 

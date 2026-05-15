@@ -286,6 +286,33 @@
                 </template>
               </div>
 
+              <!-- Agent 执行过程 -->
+              <div v-if="store.getters.getAgentSteps.length > 0" class="flex justify-center my-3">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 max-w-[85%] w-full">
+                  <div class="flex items-center gap-2 mb-2" :class="store.getters.getIsAgentActive ? 'text-blue-600' : 'text-green-600'">
+                    <svg class="w-4 h-4" :class="store.getters.getIsAgentActive ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span class="text-xs font-medium">{{ store.getters.getIsAgentActive ? 'Agent 执行中...' : 'Agent 执行完成' }}</span>
+                  </div>
+                  <div v-for="(step, i) in store.getters.getAgentSteps" :key="i" class="text-xs mb-1 pl-5">
+                    <template v-if="step.type === 'thinking'">
+                      <span class="text-slate-400">💭</span>
+                      <span class="text-slate-500 ml-1">{{ step.content }}</span>
+                    </template>
+                    <template v-else-if="step.type === 'tool_call'">
+                      <span class="text-blue-500">🔧</span>
+                      <span class="text-blue-600 ml-1 font-medium">{{ step.tool }}</span>
+                      <span v-if="step.args" class="text-slate-400 ml-1">{{ JSON.stringify(step.args) }}</span>
+                    </template>
+                    <template v-else-if="step.type === 'tool_result'">
+                      <span :class="step.success === false ? 'text-red-400' : 'text-green-400'">✅</span>
+                      <span class="text-slate-500 ml-1">{{ step.result }}</span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+
               <!-- 聊天消息区域2 -->
               <div v-for="(message, index) in store.getters.getNewMessagebyId(store.getters.getSelectedId).messages"
                 :key="index"
@@ -1106,6 +1133,8 @@ const resetChat = async () => {
   store.commit('clearRTMbyId', store.getters.getSelectedId)
   store.commit('clearTextMessageContent')
   store.commit('clearMessageIndex')
+  store.commit('clearAgentSteps')
+  store.commit('setIsAgentActive', false)
   messageHeight.value = 0
 
   showSuccessMessage('已清空当前本地对话')
@@ -1118,10 +1147,9 @@ const chooseAssistant = (id) => {
     return
   }
   store.commit('setSelectedId', id);
-  console.log('切换助手的id', store.getters.getSelectedId)
-  console.log('getNewMessage', store.getters.getNewMessage)
-  console.log('getAssistantMessage', store.getters.getAssistantMessage)
   store.commit('clearMessageIndex')
+  store.commit('clearAgentSteps')
+  store.commit('setIsAgentActive', false)
   store.commit('setMessageIndex', store.getters.getNewMessageLength(store.getters.getSelectedId) - 1)
   messageHeight.value = store.getters.getNewMessageLength(store.getters.getSelectedId)
 }
@@ -1497,6 +1525,8 @@ const sendtoChat = async () => {
   store.commit('setIsHaveTextMessage', true)
   store.commit('setIsTextChat', true)
   store.commit('clearTextMessageContent')
+  store.commit('clearAgentSteps')
+  store.commit('setIsAgentActive', false)
   userInput.value = '';
   characterCount.value = 0;
 
@@ -1528,7 +1558,21 @@ const sendtoChat = async () => {
           nextTick(() => scrollToBottom());
         }
       },
+      onAgentThinking: (text) => {
+        store.commit('setIsAgentActive', true)
+        store.commit('addAgentStep', { type: 'thinking', content: text })
+        if (isNearBottom()) nextTick(() => scrollToBottom())
+      },
+      onAgentToolCall: (data) => {
+        store.commit('addAgentStep', { type: 'tool_call', tool: data.tool, args: data.args })
+        if (isNearBottom()) nextTick(() => scrollToBottom())
+      },
+      onAgentToolResult: (data) => {
+        store.commit('updateLastAgentStep', { type: 'tool_result', result: data.summary || data.result, success: data.success !== false })
+        if (isNearBottom()) nextTick(() => scrollToBottom())
+      },
       onDone: () => {
+        store.commit('setIsAgentActive', false)
         const generated = store.getters.getTextMessageContent;
         const content = generated?.content || '';
         if (content.trim()) {
@@ -1549,6 +1593,7 @@ const sendtoChat = async () => {
         });
       },
       onError: (message) => {
+        store.commit('setIsAgentActive', false)
         triggerShake(message || '生成失败，请稍后重试');
       }
     });
@@ -1559,6 +1604,7 @@ const sendtoChat = async () => {
   } finally {
     store.commit('setIsHaveTextMessage', false);
     store.commit('setIsTextChat', false);
+    store.commit('setIsAgentActive', false)
     activeStreamController = null;
   }
 };
@@ -1571,6 +1617,7 @@ const sendInterrupt = () => {
   }
   store.commit('setIsTextChat', false)
   store.commit('setIsHaveTextMessage', false)
+  store.commit('setIsAgentActive', false)
 };
 
 // 触发震动效果的函数（1秒后自动停止）

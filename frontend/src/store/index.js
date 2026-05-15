@@ -45,6 +45,10 @@ const store = createStore({
         llmThinkingContent: '',      // streaming deep-thinking tokens
         isTtsPlaying: false,         // TTS audio playback active
 
+        // ---- agent state ----
+        agentSteps: [],              // [{ id, type:'thinking'|'tool_call'|'tool_result', content, tool, args, result, success, timestamp }]
+        isAgentActive: false,        // whether Agent loop is running
+
     },
     mutations: {
         // 同步修改状态的方法（Vuex 规定必须通过 mutations 修改 state）
@@ -658,6 +662,27 @@ const store = createStore({
             state.isTtsPlaying = playing
         },
 
+        // ---- agent mutations ----
+        addAgentStep(state, step) {
+            state.agentSteps.push({
+                id: Date.now() + Math.random(),
+                timestamp: Date.now(),
+                ...step
+            })
+        },
+        updateLastAgentStep(state, updates) {
+            if (state.agentSteps.length > 0) {
+                const last = state.agentSteps[state.agentSteps.length - 1]
+                Object.assign(last, updates)
+            }
+        },
+        clearAgentSteps(state) {
+            state.agentSteps = []
+        },
+        setIsAgentActive(state, active) {
+            state.isAgentActive = active
+        },
+
     },
     actions: {
         // 异步操作和业务逻辑
@@ -730,6 +755,10 @@ const store = createStore({
         getLlmStreamingContent: state => state.llmStreamingContent,
         getLlmThinkingContent: state => state.llmThinkingContent,
         getIsTtsPlaying: state => state.isTtsPlaying,
+
+        // ---- agent getters ----
+        getAgentSteps: state => state.agentSteps,
+        getIsAgentActive: state => state.isAgentActive,
 
     },
     modules: {
