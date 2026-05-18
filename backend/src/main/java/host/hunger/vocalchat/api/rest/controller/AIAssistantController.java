@@ -155,16 +155,6 @@ public class AIAssistantController {
     }
 
     @AutoResult
-    @PostMapping("/{aiAssistantId}/conversation")
-    @OperateLog("追加会话消息")
-    public void addMessages(@PathVariable String aiAssistantId, @RequestBody AddMessagesDTO dto) {
-        List<Pair<String, String>> messages = dto.getMessages().stream()
-                .map(m -> Pair.of(m.get(0), m.get(1)))
-                .toList();
-        aiAssistantApplicationService.addMessagesToConversation(aiAssistantId, messages);
-    }
-
-    @AutoResult
     @DeleteMapping("/{aiAssistantId}/conversation-log")
     @OperateLog("重置会话历史")
     public void resetConversation(@PathVariable String aiAssistantId) {

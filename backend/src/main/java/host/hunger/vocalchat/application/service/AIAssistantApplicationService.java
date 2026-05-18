@@ -173,19 +173,6 @@ public class AIAssistantApplicationService {
     }
 
     @Transactional
-    public void addMessagesToConversation(String aiAssistantId, List<Pair<String, String>> messages) {
-        AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
-        Dialogue dialogue = aiAssistantRepository.findDialogueByAIAssistantId(assistantId)
-                .orElseThrow(() -> new BaseException(ErrorEnum.DIALOGUE_NOT_FOUND));
-        for (Pair<String, String> msg : messages) {
-            DialogueRole role = DialogueRole.from(msg.getLeft());
-            DialogueContent content = new DialogueContent(msg.getRight());
-            dialogue.addContext(new DialogueContext(role, content));
-        }
-        aiAssistantRepository.saveDialogue(dialogue);
-    }
-
-    @Transactional
     public void resetConversation(String aiAssistantId) {
         AIAssistantId assistantId = new AIAssistantId(aiAssistantId);
         aiAssistantRepository.deleteDialogue(assistantId);
